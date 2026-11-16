@@ -32,10 +32,10 @@ fun TermuxTaskerPanel() {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Termux:Tasker · communication", style = MaterialTheme.typography.titleLarge)
-            Text("TT-F0 · read-only trace, exact v0.9.0/F-Droid identity only",
+            Text("TT-E1 · enhanced editor + TT-F0 read-only trace; exact v0.9.0/F-Droid identity",
                  style = MaterialTheme.typography.labelMedium)
-            Text("Existing Tasker actions and the stock configuration editor are unchanged. " +
-                 "No automatic script replay or callback retry.")
+            Text("The original Tasker action serializer remains unchanged. " +
+                 "The enhanced editor has Save, Discard and Original fallback. No automatic script replay or callback retry.")
             HorizontalDivider()
             Text("Observed device state", fontWeight = FontWeight.SemiBold)
             Text("Plugin: ${facts.plugin}")
@@ -69,8 +69,8 @@ fun TermuxTaskerPanel() {
                  "Missing receiver events alone cannot prove Tasker failed to dispatch.")
             Text("4. Record whether failure is before first unlock, just after unlock, " +
                  "or normal operation. Check the Tasker permission without granting it automatically.")
-            Text("No feature-changing fixes, new Tasker bundle keys, SystemUI scope, " +
-                 "root command execution or permission bypass are enabled.",
+            Text("The editor changes a Tasker action only after explicit Save. No IPC repair, " +
+                 "new Tasker bundle keys, SystemUI scope, root execution or permission bypass.",
                  style = MaterialTheme.typography.bodySmall)
         }
     }

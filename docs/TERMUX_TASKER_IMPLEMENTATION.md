@@ -1,86 +1,40 @@
-# Termux:Tasker TT-F0 — read-only IPC trace and readiness (one shared module)
+# Termux:Tasker current implementation — TT-F0 + TT-E1
 
-## Verified implementation and deliberate boundary
+## Verified source and compatibility boundary
 
-**Source contract:** The original user-supplied `Termux꞉Tasker_0.9.0.apk` has
-SHA-256 `f8cd889f9987759bcaeb68b8a8ba337085b5938b97a5cd9f05a4e610d411ef5e`.
-Its F-Droid signing certificate SHA-256 is
-`228fb2cfe90831c1499ec3ccaf61e96e8e1ce70766b9474672ce427334d41c42`.
-Signatures of upstream tagged v0.9.0 Java methods were inspected against the
-verified `termux/termux-tasker` source. The installed package and physical
-LSPosed runtime have **not** been independently attested at authoring time.
+The original user-supplied Termux:Tasker v0.9.0 APK SHA-256 is `f8cd889f9987759bcaeb68b8a8ba337085b5938b97a5cd9f05a4e610d411ef5e`. Its F-Droid signing certificate SHA-256 is `228fb2cfe90831c1499ec3ccaf61e96e8e1ce70766b9474672ce427334d41c42`. TT-E1 only hooks `com.termux.tasker` in its **normal editor process**, after TT-F0's versionCode `1002`, versionName `0.9.0`, package and signature attestation. An incompatible build retains the original editor.
 
-TT-F0 adds **observational, not behavior-changing** method hooks to the same
-AutoNexus APK, conditional on the user enabling its LSPosed scope for
-`com.termux.tasker` and an exact `0.9.0` / `1002` / signer match.
-Incompatible or unreadable installations are left untouched.
+## TT-E1 implemented: original editor bridge
 
-- `com.termux.tasker:background`: `FireReceiver.onReceive(Context, Intent)`
-  entry/return, and `PluginUtils.sendExecuteIntentToExecuteService(...)`
-  entry/return.
-- Main plugin process: `PluginResultsService.onHandleIntent(Intent)`,
-  `PluginUtils.sendPendingResultToPluginHostApp(Context, Intent)`, and
-  `TaskerPlugin.Setting.signalFinish(Context, Intent, int, Bundle)`
-  entry/return.
-- Process-local diagnostic sequences distinguish status and duration;
-  each process logs at most 160 events per load. Stage names and outcomes
-  are fixed enums. No scripts, command paths, arguments, stdin, stdout,
-  stderr, intents, bundle contents, exception messages, or Tasker variables
-  are read or logged. No cross-process correlation or host acknowledgment
-  is invented. LSPosed's own log access/retention governs the records.
-- The companion app adds a Termux:Tasker diagnostics page with installed
-  identity verification, Tasker/Termux visibility, Tasker's `RUN_COMMAND`
-  permission check, user-unlock state and a safe reproduction protocol.
-  It cannot inspect the plugin's private script directory or read the
-  LSPosed log from its own UID.
+The source implementation adds an *in-process Android dialog* to the original `EditConfigurationActivity`, not a replacement Termux:Tasker APK or an exported companion service. A button on the original configuration form reopens it. The modal opens by default after its original activity completes `onCreate` and binds to the original 0.9.0 field IDs:
 
-**NO IPC FIX CLAIM:** TT-F0 does not repair missing Tasker replies, change
-PendingIntent/ordered broadcast semantics, start Termux services, or retry a
-script. `signalFinish()` returning true is a *local delivery attempt*, not
-Tasker host acceptance. Missing receiver events do not prove non-dispatch.
+- Command: executable, arguments (literal string), working directory, stdin.
+- Execution: in-terminal, session action, custom background log level.
+- Results: wait-for-result and an explanation of Tasker's host timeout / output variables.
+- Diagnostics: safe explanations of plugin-side TT-F0 stages and a clear admission that host acceptance is unverified.
 
-**NO FULL EDITOR CLAIM:** The original Termux:Tasker editor and action bundle
-remain untouched. The new companion screen is not a replacement Tasker editor.
-Full editor restoration, Save/Discard and bundle roundtrip controls belong
-to the next version-gated TT-F1 stage, after obtaining physical traces.
+Draft editing is local only. **Validate & Save** checks nonempty executable, conservative size limits, numeric values against installed Termux constants, unknown serialized Tasker keys, and defers `%variables`. If validation succeeds, the editor updates the *original* v0.9.0 widgets and `mStdin`, then invokes the original activity's `finish()`, allowing the original plugin to create the Locale/Tasker bundle, string blurb, replacement-key list and result-variable metadata. It does not serialize the plugin action itself or inject a new key.
 
-**NO PHYSICAL DEVICE TRACE CLAIM:** Source and hosted CI qualification do not
-prove this hook chain has loaded on Android 16; the operator must enable the
-LSPosed scope, restart target processes and collect one harmless Tasker run.
+**Discard** explicitly sets the original activity's `mIsCancelled`, returns `Activity.RESULT_CANCELED` and finishes without a modified action. **Original** discards any uncommitted enhanced draft (with confirmation) and returns the original activity. **Keep Editing** leaves the draft. While enhanced mode is active, intercepted Back/Home cannot silently invoke the original `finish()` and save. When enhanced mode is disabled, stock editor behavior is left unchanged.
 
-## Execution and privacy boundaries
+The injected Activity captures transient draft state using a versioned, bounded Android `onSaveInstanceState` Bundle, with no cross-package preference or file storage. The bridge fails closed if the stock field IDs or original methods are unavailable. Unknown action keys and unavailable numeric bounds prevent enhanced Save, with a visible Original fallback. Original Tasker/Termux permissions and script path policies are never bypassed.
 
-- Exactly four ordinary app scopes; no Tasker host, Termux app, SystemUI or
-  system_server scope added. RootPolicy and `RuntimeGate` remain fail-closed.
-- Neither app nor module obtains `RUN_COMMAND`, root, storage or log-reading
-  permissions. A denied Tasker grant is reported, never silently granted.
-- No new exported receiver, service, provider, or cross-app settings channel.
-- Trace activation is via the existing user-managed LSPosed scope, **not**
-  the companion app's "Request future enhancements" switch (still staged).
-  Revoke the scope to deactivate tracing; changes take effect on process restart.
-- `isUserUnlocked=false` is diagnostic information, not permission to bypass
-  Direct Boot/credential-encrypted storage or launch scripts before unlock.
-- All production Tasker actions retain stock execution; no automatic replay.
+**NO FULL EDITOR CLAIM:** This is a functioning source-level editor bridge covering all eight original fields; it is *not* yet the complete roadmap's file browser, exact original argument-token preview, dynamic icon/theme system, safe preview/test studio, or visually redesigned multiple-screen configuration. Those require further compatibility and device acceptance.
 
-## Physical acceptance (required, not yet performed)
+## TT-F0 read-only IPC trace preserved
 
-1. On Android 16, install the new debug APK only after confirming source SHA and
-   build identity. Scope LSPosed to `com.termux.tasker`; do not scope Tasker host
-   or `com.termux` for this milestone. Restart Termux:Tasker processes.
-2. Confirm the dashboard identity status is exactly matched; if not, hooks must
-   refuse. Confirm four other app behaviors and the stock Termux:Tasker editor
-   remain unchanged with module active and disabled.
-3. Choose a **single harmless** Tasker action, and run it once. Collect logs
-   matching `AutoNexus TT_TRACE` with timestamps and redact unrelated entries.
-   Compare `BACKGROUND` receive/dispatch and `EDITOR` result/callback stages.
-4. Test normal operation, after restart, immediately after unlock, and after
-   long idle; do not run potentially destructive commands more than once.
-5. Verify plugin nonresponse is classified by where events stop, and verify
-   a missing event is not reported as host dispatch failure. Tasker-host
-   observation requires separate exact-version, explicit scope authority.
-6. Check root off, no SystemUI scope, no automatic command retries, and no
-   changes to original Locale/Tasker bundle keys and variables.
+Receiver entry/exit (`:background`), dispatch helper return, result-service/return-helper events, and local `signalFinish` outcomes remain the TT-F0 closed-enum, process-local, bounded and redacted observations. No scripts, paths, arguments, stdin/stdout/stderr, Tasker variables, Bundle contents or exception messages are logged. Only stage and local duration are observed.
 
-The next TT-F1 implementation is gated on this evidence. The full required
-editor and the identified specific IPC repair will be delivered together as
-one independently reviewed milestone, rather than speculative method patches.
+**NO IPC FIX CLAIM:** TT-E1 does not modify ordered broadcasts, PendingIntent, service execution, host callbacks or the Tasker host. `signalFinish()` returning true does not prove Tasker accepted the completion. Shell commands are **never** automatically replayed.
+
+**NO PHYSICAL DEVICE TRACE CLAIM:** No source-level check, hosted build, stub compile or APK artifact proves the injected Activity or original Tasker task can save/load in the real LSPosed environment. This milestone still requires installation and physical acceptance.
+
+## Device acceptance checklist
+
+1. From the exact PR HEAD, verify `source-commit.txt` and debug APK hash before installing. Confirm plugin v0.9.0, versionCode 1002, and the specified F-Droid signer. In LSPosed, scope **only** `com.termux.tasker` for this domain; restart target processes.
+2. Open an existing Tasker → Plugin → Termux:Tasker configuration. Verify all eight fields match original values. Unchanged Save must preserve action behavior and result variables. Compare original vs enhanced save where possible; do not infer equality merely from a successful dialog close.
+3. Edit a harmless test action. Verify literal arguments, stdin including null/empty, both mode-specific numeric options, wait-for-result, `%variables`, out-of-range values, unknown keys, and excess-size guards. Verify rollback, Discard, Back/Home, Original fallback, orientation change and large font/keyboard usability.
+4. Remove the LSPosed scope and confirm the original editor remains operational. Confirm no extra app permissions, provider, receiver, service, root helper, SystemUI scope or changed runtime command behavior.
+5. To investigate original "plugin did not respond" symptoms, use one explicitly requested harmless Tasker run **once**. Collect redacted TT_TRACE events, their process/stage/elapsed time, the Tasker host error time and user-unlock state. Missing callbacks are not proof the command never executed.
+
+Physical acceptance is separate from hosted build success, native Devtool receipt, and production release qualification. No specific IPC repair may be enabled until the missing stage has been verified on the device.

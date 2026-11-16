@@ -109,6 +109,9 @@ object ReadOnlyTraceHooks {
                     },
                 )
             }
+            // The enhanced editor is isolated to the already signer/version-gated
+            // normal plugin process. Its failure never blocks the stock editor.
+            safeInstall(process) { EnhancedEditorHooks.install(loader) }
         }
     }
 

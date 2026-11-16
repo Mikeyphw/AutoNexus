@@ -21,3 +21,10 @@ Exact installed signing certificate, version name and code are attested before
 method hooks install. The module never starts services, repeats commands,
 grants `RUN_COMMAND` or claims that a local `signalFinish` return is accepted
 by the Tasker host. See `docs/TERMUX_TASKER_IMPLEMENTATION.md`.
+
+## TT-E1 configuration safety
+
+- Enhanced editor is version and F-Droid signer gated to the original Termux:Tasker 0.9.0 main process. It never runs scripts, grants permissions, changes Termux policy or adds Tasker bundle fields.
+- All inputs remain in-process, with bounded versioned Activity saved-state restoration; none enter read-only `TT_TRACE` logs.
+- Back/Home cannot invoke the implicit stock Save while the enhanced editor is active. Discard marks the legacy cancellation flag. Original fallback preserves untouched native controls. Unknown serialized keys and unavailable numeric constants refuse enhanced Save.
+- No root, SystemUI, automatic command replay, or Tasker host IPC rewriting is introduced.

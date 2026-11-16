@@ -20,7 +20,7 @@ This storage belongs exclusively to the AutoNexus Activity. Injected target proc
 
 ## Future domain work
 
-The four detailed `docs/roadmaps/` remain specifications, not implemented behavior. Runtime adapters, editor injection, IPC fixes, optional root and conditional SystemUI hooks remain blocked on real-device baselines and separately reviewed native overlay changes. Do not auto-retry unknown-state Tasker commands. Physical LSPosed acceptance is independent of hosted JVM/Android build success.
+The four detailed `docs/roadmaps/` remain specifications, not implemented behavior. TT-F0 read-only tracing and TT-E1's version-gated editor are implemented in source but not physically qualified. **Modifying IPC fixes**, other-domain adapters, optional root and conditional SystemUI hooks remain blocked on on-device evidence and separately reviewed native overlays. Do not auto-retry unknown-state Tasker commands. Physical LSPosed acceptance is independent of hosted JVM/Android build success.
 
 ## TT-F0 observational boundary
 
@@ -31,3 +31,7 @@ visible in LSPosed logs; the companion app uses PackageManager/UserManager
 read-only checks. No cross-app IPC, storage provider, command execution or
 automated recovery channel is added. This does not enable the false
 `RuntimeGate` behavior/privilege flags.
+
+## Termux:Tasker TT-E1 configuration boundary
+
+The version/signer-gated main plugin process has a UI-only hook into its existing `EditConfigurationActivity`. Its dialog stages eight stock fields. Validate & Save copies the values into the original widgets and invokes the stock `finish()` to generate the original Locale bundle; Discard marks the original cancellation flag and returns `RESULT_CANCELED`. Original fallback discards only the enhanced draft. Back/Home while enhanced mode is active cannot call the original implicit Save. A versioned, bounded Activity saved-state bundle restores transient drafts during recreation; it is not added to Tasker configuration, cross-package preferences or root services. Unknown Tasker fields and unavailable numeric ABI refuse enhanced Save.

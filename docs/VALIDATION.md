@@ -1,6 +1,6 @@
 # AutoNexus preflight validation and evidence
 
-No skipped check counts as a pass. All validation stages keep the module behavior-inert and root-disabled.
+No skipped check counts as a pass. Runtime command/notification changes and root remain disabled. TT-F0 observational hooks and the TT-E1 configuration UI are explicitly scoped, signer-verified enhancements and must not be described as no hooks at all.
 
 ## Source and JVM
 
@@ -114,3 +114,11 @@ production signing remain separately unverified.
 - On-device operating instructions and exclusions are in
   `docs/TERMUX_TASKER_IMPLEMENTATION.md`. No old historical test chain was
   deleted; existing security gates are preserved.
+
+## TT-E1 enhanced in-plugin editor
+
+- `tools/test_termux_tasker_editor.py` tests current hooked Activity identity, eight fields, explicit Save/Cancel, transient restoration, unknown keys, fail-closed ranges and privacy. All existing checks are retained.
+- `EditorContractTest` is part of hosted `:app:testDebugUnitTest`, checking exact literal arguments/stdin, empty executable, numeric bounds, Tasker `%variables`, size caps and unknown fields.
+- Hosted Android build and `:app:lintDebug` must compile the Android/Xposed editor bridge; local stub compilation, if performed, is not hosted qualification.
+- Physical acceptance: install the exact-HEAD debug APK, scope LSPosed only to `com.termux.tasker`, verify pinned F-Droid 0.9.0 signature; open an existing Tasker action and compare all eight saved fields. Verify no-op Save, Discard, Original fallback, Back/Home, rotation, large stdin, null/default values, incompatible signature and malformed values. Check original Tasker result bundle, not only dialog success.
+- Run only one harmless action on explicit user initiation. TT-F0 trace stages must identify the actual IPC failure before any behavioral retry/repair. No release signing or hardware acceptance claim from CI alone.

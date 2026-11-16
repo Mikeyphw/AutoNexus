@@ -23,7 +23,7 @@ def verified_plugin_build(root_gradle, app_gradle):
     assert 'androidx.activity:activity-compose:1.13.0' in app_gradle
     assert 'jvmTarget.set(JvmTarget.JVM_17)' in app_gradle
     assert 'kotlinOptions' not in app_gradle
-    assert re.search(r'versionCode\s*=\s*3\b', app_gradle)
+    assert re.search(r'versionCode\s*=\s*4\b', app_gradle)
 
 
 def settings_are_private(source):

@@ -1,20 +1,15 @@
-# Feature inventory — preflight versus future behavior adapters
+# AutoNexus current feature inventory
 
-| Component | Existing baseline | Preflight milestone proposed | Still not implemented |
-|---|---|---|---|
-| Shared companion UI | Legacy read-only Android view cards | Compose Material 3 dashboard, dark/light dynamic color, package details and diagnostics tab | Runtime injected plugin editors |
-| Four independent domains | Package scope and inert entrypoint | Private per-domain requested intent and local-details controls with safe-off labels | Authenticated settings IPC and behavior hooks |
-| AutoNotification | Scope only | Version visibility and inert LSPosed checklist | HTML restoration, Notify/Table/Intercept/Query/Channels/Rules/Tiles/Toasts UI, conditional SystemUI |
-| AutoInput | Scope only | Version visibility and inert LSPosed checklist | Actions v2, UI Query, gestures, capture, events and root input |
-| AutoTools | Scope only | Version visibility and inert LSPosed checklist | 33 editors, JSON/Web Screen/Dialog studios, Secure Settings |
-| Termux:Tasker | Scope only | Version visibility and inert LSPosed checklist | Two-sided IPC tracing/repair, post-reboot readiness and safe Tasker editor, no SystemUI |
-| Hosted build | GitHub Android compile/JVM/lint+DEX gate | Exact PR HEAD checkout and short-lived debug APK with source/SHA-256 | Device/test/release qualification |
+This table distinguishes **source implemented** from **hosted, physical and release acceptance**. A passed earlier hosted build does not accept unbuilt changes.
 
-The four `roadmaps/*.md` remain agreed per-domain feature specifications. A staged request switch deliberately does **not** activate the LSPosed module's modifying hooks. Physical app version, ROM and LSPosed compatibility must be verified before implementing those adapters.
+| Component | Current source behavior | Still outstanding |
+|---|---|---|
+| Shared companion | Material 3 dashboard, package visibility, private versioned per-domain staged intent, diagnostics | Authenticated process-crossing settings IPC (only when needed) |
+| AutoNotification | Exact package scope, no notification-modifying hooks | HTML restoration, complete editors, optional verified SystemUI adapter |
+| AutoInput | Exact package scope, no UI/gesture hooks | Actions v2, UI query, gestures, screenshot, explicit root fallback |
+| AutoTools | Exact package scope, no JSON/secure settings behavior changes | Full 33 editors, JSON/visual Web Screen/Dialog studios, permitted secure settings |
+| Termux:Tasker TT-F0 | Verified-package read-only receiver/dispatch/result/callback timing and redacted LSPosed log; companion readiness | Physical traces, host acceptance proof, proven non-response repair |
+| Termux:Tasker TT-E1 | Eight-field in-plugin editor; explicit save/discard/stock fallback; bounded activity-state recovery; conservative validation using original numeric constants | Physical save/restore equivalence; browser, argument studio, complete rich UI; specific IPC repair after evidence |
+| Hosted CI | Exact source SHA checkout, static/JVM/Android lint/DEX gates and temporary debug artifact | New HEAD hosted checks, physical device acceptance and production signing |
 
-## Termux:Tasker TT-F0 shipped source scope
-
-The Termux:Tasker domain now has exact-signer/version-gated **read-only**
-receiver/dispatch/result/callback observations, a bounded, redacted LSPosed
-trace and a companion readiness panel. No functional IPC repair or enhanced
-editor is asserted. Read `docs/TERMUX_TASKER_IMPLEMENTATION.md`.
+**Tasker IPC reliability status:** no modifying IPC fix is implemented. The reported “plugin did not respond” symptom does not by itself prove the command never executed. Automatic command replay stays prohibited. No Termux:Tasker feature requires SystemUI, a root daemon or altered Tasker/Termux APKs.

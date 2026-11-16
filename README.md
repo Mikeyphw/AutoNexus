@@ -1,97 +1,39 @@
 # AutoNexus
 
-**One LSPosed module. Four independent Tasker plugin domains.**
+**One LSPosed companion APK, four independently bounded Tasker-plugin domains.** AutoNexus does not rebuild, patch, re-sign, replace, or bypass licenses for the original applications.
 
-AutoNexus is an Android/LSPosed shared companion for AutoNotification, AutoInput, AutoTools and Termux:Tasker. It does not rebuild, patch, re-sign, replace, or bypass licensing for those apps.
+## Current implementation
 
-The preflight stage intentionally contains **zero behavior-changing method hooks**, no root execution, no SystemUI or `system_server` scope, and no privileged permissions. The legacy LSPosed load-package entry point registers in the four application processes and remains fail-closed. No release/device compatibility is asserted until accepted on a physical device.
+| Domain | Reference package/version | Implemented behavior |
+|---|---|---|
+| AutoNotification | `com.joaomgcd.autonotification` 4.3.14 / 182 | Package status and inert scope only; no notification changes |
+| AutoInput | `com.joaomgcd.autoinput` 3.0.12 / 104 | Package status and inert scope only; no UI/gesture changes |
+| AutoTools | `com.joaomgcd.autotools` 2.3.19 / 197 | Package status and inert scope only; no editor/JSON changes |
+| Termux:Tasker | `com.termux.tasker` 0.9.0 / 1002, exact F-Droid signing certificate | **TT-F0:** read-only IPC-stage traces and companion readiness diagnostics. **TT-E1:** in-process, signer/version-gated enhanced editor covering all eight original fields |
 
-| Domain | Package | Reference APK version | Bootstrap |
-|---|---|---|---|
-| AutoNotification | `com.joaomgcd.autonotification` | 4.3.14 / 182 | scoped, inert |
-| AutoInput | `com.joaomgcd.autoinput` | 3.0.12 / 104 | scoped, inert |
-| AutoTools | `com.joaomgcd.autotools` | 2.3.19 / 197 | scoped, inert |
-| Termux:Tasker | `com.termux.tasker` | 0.9.0 / 1002 | scoped, inert |
+The AutoNexus Material 3 companion shows independent private, versioned **staged requests**, installed-package comparisons and local-only diagnostics. Companion switches do not grant privileges or enable shell/IPC changes. LSPosed scope activation is manual and cannot be inferred from the companion UI.
 
-## What is implemented
+**TT-E1 enhanced editor** appears inside the original Termux:Tasker configuration activity after it loads, not as a new Tasker plugin or replacement APK. It offers Command, Execution, Results and Diagnostics; edits are staged locally. **Validate & Save** delegates Locale/Tasker bundle creation to the original activity. **Discard**, **Keep Editing**, and **Original editor** fallback make the save intent explicit. Unknown action keys and unverified numeric ABI refuse enhanced Save. Back/Home cannot silently save while enhanced mode is active. Rotation restoration is transient and bounded. The original UI remains the fallback if hooks or compatibility checks fail.
 
-- Material 3 Compose dashboard with four independently stored **staged requests**, local-only diagnostics switches and a read-only on-device acceptance checklist.
-- Versioned, private, atomic per-domain preferences. Settings cannot be read from LSPosed target processes; no authenticated settings IPC or behavior hooks exist yet.
-- Live package-manager version/reference comparison, with explicit "not installed or not visible" uncertainty; LSPosed activation remains unknown from the companion UI.
-- Debug APK hosting workflow pinned to exact PR HEAD with SHA-256 and seven-day retention for physical acceptance. This is **not release signing**.
-- Preflight version `0.3.0-tt-f0` / versionCode `3` (Termux:Tasker diagnostics).
-- Single Android application ID `io.github.mikeyphw.autonexus` and legacy LSPosed registration (`xposed_init`, manifest scope).
-- Material 3 dashboard with four status cards and installed-package visibility checks. No mocked privilege status.
-- Pure domain registry, versioned compatibility reference data, scope isolation, and fail-closed runtime gate.
-- Explicit root-operation policy with **no executor or root escalation**; all root operations are rejected in bootstrap.
-- JVM unit tests, static artifact integrity/security tests, and an Android GitHub Actions source gate.
-- Final consolidated roadmaps stored under `docs/roadmaps/`, plus delivery and security contracts.
+**TT-F0 trace** records only fixed receiver/dispatch/result/callback stages, local outcomes and durations in the LSPosed manager's logs. Neither the editor nor the trace logs command paths, arguments, stdin/stdout, Tasker variables or secret data. Tracing does not establish Tasker host acknowledgment.
 
-## Termux:Tasker TT-F0 observability
+**Not implemented:** the known Tasker “plugin did not respond” reliability fix; Tasker host-side / Termux process trace; browser and exact argv studio; completed multi-screen original editor replacement; root helpers; SystemUI hooks; behavior changes for the other three domains; release signing or physical-device qualification of TT-E1. No unknown-state script is automatically retried. See [TT implementation](docs/TERMUX_TASKER_IMPLEMENTATION.md) and the [four full domain roadmaps](docs/ROADMAP_INDEX.md).
 
-Termux:Tasker **v0.9.0 / code 1002 / exact supplied F-Droid certificate** now has
-version-gated, read-only LSPosed observations for receiver, service dispatch,
-results service and Tasker callback API. A companion diagnostics tab shows
-Tasker/Termux package, Tasker RUN_COMMAND grant and user-unlock state.
-Observation does not establish host acceptance, and logs are available only
-through the LSPosed manager (no cross-process log service). This feature is
-active only when the user explicitly enables the Termux:Tasker LSPosed scope;
-the companion `Request future enhancements` switch remains staged. See
-`docs/TERMUX_TASKER_IMPLEMENTATION.md` for supported versions and physical tests.
+## Build and hosted checks
 
-## What is NOT implemented
+Current debug version: **0.4.0-tt-e1 (versionCode 4)**. Requirements: JDK 17, Android SDK 36 (`compileSdk` and `targetSdk` 36; `minSdk` 26), Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin/Compose compiler plugin 2.3.21, Compose BOM 2026.06.01 and activity-compose 1.13.0. The historical Xposed API `de.robv.android.xposed:api:82` is **compileOnly**, never shipped as framework implementation classes.
 
-No behavior-changing enhancement hooks, HTML fixes, UI editor overlays, Tasker IPC fixes, JSON engine replacements, gesture retries, injection into SystemUI, root daemon, release signing, or real-device tests. These are planned features, not bootstrap acceptance claims.
+```sh
+python3 tools/verify_bootstrap.py --repo .
+python3 -m unittest discover -s tools -p 'test_*.py' -v
+gradle :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --no-daemon --stacktrace
+python3 tools/verify_bootstrap.py --repo . --apk app/build/outputs/apk/debug/app-debug.apk
+```
 
-## Build
+The GitHub Actions `AutoNexus Android source gate` checks out the **exact PR HEAD**, runs these mandatory checks, and uploads the debug APK plus SHA-256/source identity for **seven days** when green. CI's bounded Maven 429 retry never converts compile, test, lint or exhausted-network errors into successes. Hosted build, physical LSPosed loading, native Devtool CI qualification and release signing are distinct evidence levels; previous HEAD success does not prove a new overlay passed.
 
-Build with Android SDK 36, JDK 17 and Gradle 8.13. The AGP pin is 8.13.2 and Kotlin/Compose compiler plugin pin is 2.3.21; Compose BOM is **2026.06.01** (core 1.11.4 and Material 3 1.4.0, compatible with the pinned SDK/AGP); activity-compose is 1.13.0. Use an externally installed Gradle 8.13 (`gradle :app:assembleDebug :app:testDebugUnitTest :app:lintDebug`) or the native Devtool Android Gradle runner. The ZIP deliberately does **not** include an unverified Gradle wrapper JAR.
+## Native delivery and security
 
-The Xposed legacy API (`de.robv.android.xposed:api:82`) is a **compileOnly** dependency; only the framework supplies it at runtime. The restricted Appodeal artifact repository in settings is used for that historical API coordinate; confirm the artifact source and checksum before production release. Dependency/artifact resolution was not tested in the offline authoring environment.
+All repository changes must use exact-pinned native **Mikeyphw/devtool Launcher v3.1+**: verify the intended named feature branch, origin, HEAD/tree, every modified preimage blob, launcher HEAD/tree/schema and payload; native validation, atomic commit, durable session, authorized push and PR/CI observation. Never replace native application with manual file copying, force-push, rebase, reset or discarded receipts. After `LAUNCHER_V3_COMMITTED`, resume the session rather than reapplying the package. See [Devtool delivery](docs/DEVTOOL_DELIVERY.md) and [validation](docs/VALIDATION.md).
 
-## Delivery and CI
-
-The initial bootstrap was committed at `765371659edcc8439e395ccddaccb0956e68b358` on `feature/autonexus-bootstrap`, with open draft PR #1. The first hosted Android source gate failed on the legacy Kotlin `kotlinOptions { jvmTarget = "17" }` syntax; the consolidated CI-repair overlay migrates to the typed `compilerOptions` DSL, tests DEX class definitions (not only APK ZIP names), and adds the committed Devtool required-CI policy for the actual GitHub workflow ID.
-
-All source changes are delivered exclusively with the native Devtool Launcher v3.1+ immutable package: source/branch/HEAD/tree/preimage verification, native overlay validation, atomic commit, durable session, approved push/PR and exact-head CI observation. This repository's `.devtool` private receipts are never deleted to satisfy a clean-source check; the repair package is built and applied in a separate clean, verified checkout of the same feature branch.
-
-CI does not prove Android 16 physical LSPosed loading, device behavior or signed release readiness. See `docs/DEVTOOL_DELIVERY.md` and `docs/VALIDATION.md`.
-
-## Default behavior and privacy
-
-All feature behavior hooks and privileged operations default disabled. Hooks never log notification contents, accessibility tree text, Tasker variables, executable arguments or secrets. Existing apps work exactly as before. No implicit uploads or automatic clipboard use.
-
-## Preflight device acceptance (proposed follow-up)
-
-The consolidated preflight overlay is based on source HEAD `779a76ee1126de52fc09adb759997b03f48c29d6`, with a **hosted CI success for the prior CI repair only**. Do not claim the new Material 3/Compose UI compiles or runs until its own exact-head checks pass. After native delivery, obtain the short-lived `autonexus-preflight-SHA` debug APK artifact from the PR Actions run, check `app-debug.apk.sha256` and `source-commit.txt`, then explicitly install/test it. LSPosed target scopes remain manual, exactly four plugin packages. Do not add system packages. See `docs/VALIDATION.md` for the acceptance checklist.
-
-## CI dependency rate limits
-
-The hosted Material 3 preflight run on the feature branch encountered Maven
-Central HTTP 429 while resolving Gradle classpath artifacts, before Android
-compilation. The CI-only wrapper retries the *same* Android build, JVM tests,
-and lint tasks at most three times **only** for confirmed dependency-resolution
-429 responses. Other failures remain failures; the wrapper cannot guarantee
-recovery from persistent upstream throttling. See `docs/VALIDATION.md` for
-failure evidence, tests, and acceptance boundaries.
-
-## CompileSdk 36 / Compose compatibility repair
-
-The source-bound hosted run on `dce8ff47fa73a9034f76317d2b895902c97b5e96`
-failed in Gradle's **mandatory AAR metadata gate**: BOM 2026.09.00 resolved
-Compose 1.12.1 requiring compileSdk 37 and AGP 9.1+. The Maven 429 retry
-wrapper correctly treated that as a non-retryable source/dependency error.
-The next consolidated change selects stable BOM 2026.06.01 (Compose core
-1.11.4, Material3 1.4.0) and updates the existing build contract tests. It
-retains compileSdk/targetSdk 36, AGP 8.13.2, and all no-hook/root safeguards.
-The new hosted Android build, APK and device acceptance are still pending.
-
-## Kotlin Compose scope correction (source-only until hosted CI)
-
-The SDK36 Compose dependency correction allowed the hosted preflight build to
-reach Kotlin compilation, which exposed an invalid top-level `weight` import
-in `MainActivity.kt`. The consolidated follow-up removes that import while
-preserving the two Row-scoped `Modifier.weight(1f)` calls and adds regression
-tests. It does not change app behavior, root/LSPosed scope, device permissions,
-or dependencies. A new exact-HEAD Android build is required before accepting
-the UI as compiled; device acceptance is still outstanding.
+No new exported components, root operations, permission grants, SystemUI/system_server scopes, Tasker bundle keys or automatic command replays are introduced. Runtime command/notification modification gates remain off for all domains. Termux:Tasker TT-E1 is a separately scoped **UI-only** enhancement, not an IPC or shell behavior change. See [security](docs/SECURITY.md).
