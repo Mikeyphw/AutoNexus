@@ -51,3 +51,29 @@ refused with HTTP 403 (Actions write permission missing). No hosted rerun or
 qualification should be claimed from this source-only hardening. The retry
 wrapper does not bypass Devtool's native required-CI policy, change device
 behavior, or promote a debug APK to a signed release.
+
+## Compose AAR metadata incompatibility on latest source (2026-11-16)
+
+Exact PR HEAD `dce8ff47fa73a9034f76317d2b895902c97b5e96` produced Actions run
+`43937398061`. The CI wrapper correctly **did not retry**: `:app:checkDebugAarMetadata`
+failed with 18 incompatibilities because Compose core 1.12.1 (from BOM 2026.09.00)
+requires `compileSdk >= 37` and AGP 9.1+, while this Android 16 project is
+using SDK 36 and AGP 8.13.2. This is a dependency/API compatibility failure,
+not a Maven HTTP 429. Python security/regression checks passed; Android JVM,
+lint and APK checks did not finish and must not be described as passed.
+
+The next source-pinned compatibility repair selects stable Compose BOM
+`2026.06.01` (core 1.11.4, Material3 1.4.0) without changing Android SDK,
+Gradle, Kotlin, Xposed scope, default-off gate, or required-CI policy. The
+existing `tools/test_dashboard_contract.py` test is updated to reject later
+BOM versions and unreviewed SDK changes; all retained tests still run. The
+actual AAR metadata task stays enabled, including negative and packaging checks.
+
+References: https://developer.android.com/develop/ui/compose/setup-compose-dependencies-and-compiler
+and the published Compose BOM `2026.06.01` POM/version mapping at
+https://mvnrepository.com/artifact/androidx.compose/compose-bom/2026.06.01/dependencies.
+This repair is not accepted until the exact new PR HEAD finishes Android
+compile, JVM tests, lint and DEX/APK verification. Existing native Devtool
+session `85c6107867a4408e8043f27af8392c63` is already committed; never
+reapply that old package. A **new** native source-bound overlay/session is
+required for this compatibility change.

@@ -41,7 +41,9 @@ kotlin {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.09.00"))
+    // The newer 2026.08+/09 BOM resolves Compose 1.12.x which requires SDK 37 and AGP 9.1+.
+    // 2026.06.01 pins Compose core 1.11.4 / Material3 1.4.0 for SDK 36 / AGP 8.13.2.
+    implementation(platform("androidx.compose:compose-bom:2026.06.01"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.activity:activity-compose:1.13.0")
     compileOnly("de.robv.android.xposed:api:82")

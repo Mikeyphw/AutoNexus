@@ -15,7 +15,10 @@ def verified_plugin_build(root_gradle, app_gradle):
     assert 'id("org.jetbrains.kotlin.plugin.compose") version "2.3.21" apply false' in root_gradle
     assert 'id("org.jetbrains.kotlin.plugin.compose")' in app_gradle
     assert 'compose = true' in app_gradle
-    assert 'androidx.compose:compose-bom:2026.09.00' in app_gradle
+    assert 'androidx.compose:compose-bom:2026.06.01' in app_gradle
+    assert '2026.08.00' not in app_gradle and '2026.09.00' not in app_gradle
+    assert re.search(r'compileSdk\s*=\s*36\b', app_gradle)
+    assert re.search(r'targetSdk\s*=\s*36\b', app_gradle)
     assert 'androidx.compose.material3:material3' in app_gradle
     assert 'androidx.activity:activity-compose:1.13.0' in app_gradle
     assert 'jvmTarget.set(JvmTarget.JVM_17)' in app_gradle
@@ -57,9 +60,29 @@ class AndroidStageContractTests(unittest.TestCase):
             verified_plugin_build(read('build.gradle.kts'), read('app/build.gradle.kts').replace(
                 'jvmTarget.set(JvmTarget.JVM_17)', 'kotlinOptions { jvmTarget = "17" }'))
 
-    def test_compose_mismatched_bom_rejected(self):
+    def test_incompatible_compose_api37_bom_rejected(self):
         with self.assertRaises(AssertionError):
-            verified_plugin_build(read('build.gradle.kts'), read('app/build.gradle.kts').replace('2026.09.00', '2024.01.00'))
+            verified_plugin_build(read('build.gradle.kts'), read('app/build.gradle.kts').replace('2026.06.01', '2026.09.00'))
+
+    def test_incompatible_compose_august_api37_bom_rejected(self):
+        with self.assertRaises(AssertionError):
+            verified_plugin_build(read('build.gradle.kts'), read('app/build.gradle.kts').replace(
+                '2026.06.01', '2026.08.00'))
+
+    def test_unreviewed_sdk37_upgrade_rejected(self):
+        with self.assertRaises(AssertionError):
+            verified_plugin_build(read('build.gradle.kts'), read('app/build.gradle.kts').replace(
+                'compileSdk = 36', 'compileSdk = 37'))
+
+    def test_android_gradle_plugin_remains_sdk36_compatible(self):
+        root = read('build.gradle.kts')
+        app = read('app/build.gradle.kts')
+        self.assertIn('id("com.android.application") version "8.13.2" apply false', root)
+        self.assertIn('id("org.jetbrains.kotlin.android") version "2.3.21" apply false', root)
+        self.assertIn('id("org.jetbrains.kotlin.plugin.compose") version "2.3.21" apply false', root)
+        self.assertNotIn('android.suppressUnsupportedCompileSdk', read('gradle.properties'))
+        self.assertNotIn('checkDebugAarMetadata.enabled', app)
+        self.assertNotIn('exclude("checkDebugAarMetadata")', app)
 
     def test_settings_private_and_fail_closed(self):
         settings_are_private(read('app/src/main/java/io/github/mikeyphw/autonexus/settings/DomainSettingsStore.kt'))

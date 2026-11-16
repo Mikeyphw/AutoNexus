@@ -33,7 +33,7 @@ No effective enhancement hooks, HTML fixes, UI editor overlays, Tasker IPC fixes
 
 ## Build
 
-Build with Android SDK 36, JDK 17 and Gradle 8.13. The AGP pin is 8.13.2 and Kotlin/Compose compiler plugin pin is 2.3.21; Compose BOM is 2026.09.00 and activity-compose 1.13.0. Use an externally installed Gradle 8.13 (`gradle :app:assembleDebug :app:testDebugUnitTest :app:lintDebug`) or the native Devtool Android Gradle runner. The ZIP deliberately does **not** include an unverified Gradle wrapper JAR.
+Build with Android SDK 36, JDK 17 and Gradle 8.13. The AGP pin is 8.13.2 and Kotlin/Compose compiler plugin pin is 2.3.21; Compose BOM is **2026.06.01** (core 1.11.4 and Material 3 1.4.0, compatible with the pinned SDK/AGP); activity-compose is 1.13.0. Use an externally installed Gradle 8.13 (`gradle :app:assembleDebug :app:testDebugUnitTest :app:lintDebug`) or the native Devtool Android Gradle runner. The ZIP deliberately does **not** include an unverified Gradle wrapper JAR.
 
 The Xposed legacy API (`de.robv.android.xposed:api:82`) is a **compileOnly** dependency; only the framework supplies it at runtime. The restricted Appodeal artifact repository in settings is used for that historical API coordinate; confirm the artifact source and checksum before production release. Dependency/artifact resolution was not tested in the offline authoring environment.
 
@@ -62,3 +62,14 @@ and lint tasks at most three times **only** for confirmed dependency-resolution
 429 responses. Other failures remain failures; the wrapper cannot guarantee
 recovery from persistent upstream throttling. See `docs/VALIDATION.md` for
 failure evidence, tests, and acceptance boundaries.
+
+## CompileSdk 36 / Compose compatibility repair
+
+The source-bound hosted run on `dce8ff47fa73a9034f76317d2b895902c97b5e96`
+failed in Gradle's **mandatory AAR metadata gate**: BOM 2026.09.00 resolved
+Compose 1.12.1 requiring compileSdk 37 and AGP 9.1+. The Maven 429 retry
+wrapper correctly treated that as a non-retryable source/dependency error.
+The next consolidated change selects stable BOM 2026.06.01 (Compose core
+1.11.4, Material3 1.4.0) and updates the existing build contract tests. It
+retains compileSdk/targetSdk 36, AGP 8.13.2, and all no-hook/root safeguards.
+The new hosted Android build, APK and device acceptance are still pending.
