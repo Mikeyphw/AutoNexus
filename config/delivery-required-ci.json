@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "repository": "Mikeyphw/AutoNexus",
+  "base_branch": "main",
+  "event": "pull_request",
+  "release_qualification": "separate",
+  "required_workflows": [
+    {
+      "name": "AutoNexus Android source gate",
+      "workflow_id": 419982126
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # SDK / LSPosed compatibility decision
 
-Bootstrapped against Android 16 target API 36, Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin 2.3.21 and JDK 17. See Android AGP compatibility documentation and Kotlin Gradle plugin compatibility matrix for accepted version bounds.
+This bootstrap targets Android 16 / SDK 36, Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin Gradle Plugin 2.3.21 and JDK 17. The Kotlin compiler is configured through the supported `kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }` DSL to match Java source/target compatibility 17. The deprecated `android.kotlinOptions { jvmTarget = "17" }` was rejected by the hosted Gradle Kotlin DSL compiler on AutoNexus PR #1, run 43847118183.
 
-The legacy Xposed API 82 is selected because Vector/LSPosed legacy compatibility is a plausible target and user runtime support is not yet inspected. The API MUST remain compile-only. A modern libxposed entry may be added in a future milestone only after real framework probing and without accidentally loading both entries twice.
+The legacy Xposed API 82 remains compile-only pending framework/device verification. The built APK gate reads actual DEX class definitions to ensure Xposed runtime classes are not packaged, while allowing expected interface references. A modern libxposed entry must not be introduced without runtime probing and duplicate-entry protection.
 
-`xposedscope` lists four ordinary app packages only; no SystemUI or Tasker host before version-pinned device trials. Native RootOperation is permanently deny by default in this source revision. Package version references are based on supplied APKs, not installed device evidence.
+LSPosed scopes remain exactly the four supplied plugin packages: AutoNotification, AutoInput, AutoTools, and Termux:Tasker. No SystemUI, Tasker host or `system_server` scope is enabled. Root operations and behavior hooks are fail-closed. These source/toolchain decisions are not proof of Android 16 device compatibility; build, unit tests, lint and device acceptance are separate.

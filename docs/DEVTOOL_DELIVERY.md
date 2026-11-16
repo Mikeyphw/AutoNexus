@@ -1,48 +1,23 @@
-# Native Devtool v3.1+ handoff — NO APPLY PERFORMED
+# AutoNexus native Devtool v3.1+ — consolidated CI repair
 
-Verified source: `Mikeyphw/devtool` `main` commit `af8b0936550016dc72f3facc7d2eabeef8216ddc`; `main` tree `1326e99521acf53a134a1baa2c9d862c8cb68f36`; `docs/DEVTOOL_LAUNCHER_CONTRACT_V3.md` blob `9962901d77143d0ed9837b0f8acf7854ba3a1dc2`; launcher module `devtool/launcher_contract_v3.py` blob `8f7ab603bb458068a3b4d800f3b90403fbee1d55`. Reverify main HEAD, tree and blob at delivery time—do not silently repin immutable artifacts.
+## Pinned starting source
 
-**Blocker at packaging:** `Mikeyphw/AutoNexus` did not exist on GitHub, and there was no target named-branch HEAD/tree. The v3.1 native builder cannot produce a valid source-pinned `.pyz` without that. This archive is *a reviewed data-only payload for native delivery*, NOT a signed overlay, `.pyz`, committed change or hosted result.
+- Repository: `Mikeyphw/AutoNexus`, branch `feature/autonexus-bootstrap`, exact HEAD `765371659edcc8439e395ccddaccb0956e68b358`, tree `0320996f41ffbefda3098fa63e1f0ee13a2d7cad`. PR #1 is open and draft.
+- Devtool: `Mikeyphw/devtool` `main` exact HEAD `c3f766e9252391779a854bb4bcfd47cef077aefe`, tree `08d8a07a8ee7cd8bb5dc1a19880cb718a2b08689`, launcher module blob `74361e67f930c591955ff9acf699b81098df8702`; contract doc blob `65bd5e0e44dcb6b2e42acebcef4c6a746bebff68`. No automatic immutable package repinning.
+- Failure evidence: hosted AutoNexus source gate run `43847118183`, job `133229970189` failed during Gradle build-script compilation at `app/build.gradle.kts:27` (`kotlinOptions { jvmTarget = "17" }`), before Android compilation, tests, lint or APK inspection.
 
-The payload manifest is `delivery/plan.json`, with S7 schema v1: `README.md` is **modify**, every other path is **add**. It assumes a clean named branch created with GitHub’s initial README only. Devtool will pin and verify the actual committed README preimage at build time. If any other payload path already exists or the branch/origin differs, the builder must refuse; review and regenerate the plan against the actual target HEAD. Never copy these files over an existing worktree to bypass Devtool.
+## Consolidated contents
 
-### One-time clean repository anchor (not an overlay or feature mutation)
+One bounded Devtool S7 plan (`delivery/plan.json`) and matching separate payload: Kotlin compiler DSL fix, current static security/DEX parser tests, CI source gate, actual required-CI policy, and current docs. No deletions, security bypasses, edited original plugin APKs, SystemUI hooks or root executors. The payload ZIP is **not** a native Devtool overlay or a launcher itself; only `devtool.launcher_contract_v3 build` can create the immutable `.pyz` after checking the exact real target checkout.
 
-GitHub CLI provides a non-manual-patch repository genesis with a named default branch and existing committed README:
+## Native handoff
 
-```sh
-mkdir -p "$HOME/Code" && cd "$HOME/Code" &&   gh repo create Mikeyphw/AutoNexus --private --add-readme --clone
-```
+Run the included `AutoNexus_CI_Repair_Deliver.zsh` from Termux after verifying its artifact SHA-256. It uses a **fresh, separately located clean clone of the same feature branch**, because the existing user's working tree contains preserved Devtool RUN-V3 and cleanup receipts. It must never remove or hide those receipts or overwrite user files. The immutable launcher is built against this clean clone at the exact pinned feature SHA/tree, then runs `check` and a single `apply --approve-remote` (no reapply). The new native push/PR is reconciled with existing PR #1; no force push, rebase, reset, or automatic merge.
 
-If it already exists, **do not recreate it**; confirm the exact remote, HEAD and worktree status instead. The default branch must be `main` for the planned PR base; otherwise regenerate the approved delivery base after inspection. Repository initialization does not validate, apply or deliver any AutoNexus code.
+This overlay introduces `config/delivery-required-ci.json` for the first time. The new file is not yet committed at the **source** HEAD, so CI qualification cannot be performed by the precommit policy check. Following the committed apply, the delivery wrapper establishes a **new** native source-bound session on the resulting commit and runs native `delivery session ci` with the committed policy. Missing/failed registration remains non-green; prior green checks do not qualify a new SHA. The native launcher keeps its own original durable session.
 
-### Native launcher build command (after approved creation of the target repository and clean named branch)
+The script prints all native terminal output and never makes clipboard calls, launches Textual or claims a hosted/device pass that was not observed. On an unsuccessful postcommit stage, use the printed session ID with native `status`/`resume`/`report`; **never rerun apply**.
 
-From the extracted bundle root (where `delivery/plan.json` and `payload/` are present), run:
+## Qualification
 
-```sh
-export DEVTOOL_EXECUTION_PRESENTATION=plain DEVTOOL_JOB_UI=plain \
-  DEVTOOL_TEXTUAL_APPLY_HOST=0 DEVTOOL_TEXTUAL_EXECUTION_HOST=0
-python3 -B -m devtool.launcher_contract_v3 build \
-  --repo "$HOME/Code/AutoNexus" \
-  --devtool-repo "$HOME/Code/devtool" \
-  --plan "$HOME/storage/downloads/AutoNexus_Bootstrap/delivery/plan.json" \
-  --payload "$HOME/storage/downloads/AutoNexus_Bootstrap/payload" \
-  --output "$HOME/storage/downloads/AUTONEXUS_BOOTSTRAP_V31.pyz" \
-  --name autonexus-bootstrap \
-  --commit-message 'feat: bootstrap shared AutoNexus LSPosed module' \
-  --pr-title 'Bootstrap unified AutoNexus LSPosed module'
-```
-
-Builder must verify exact target origin, branch, HEAD, tree, changed files/preimages, Devtool CLI schema and native launcher blob. Then from inside the target worktree:
-
-```sh
-python3 -B "$HOME/storage/downloads/AUTONEXUS_BOOTSTRAP_V31.pyz" check
-python3 -B "$HOME/storage/downloads/AUTONEXUS_BOOTSTRAP_V31.pyz" apply --approve-remote
-```
-
-**Do not use `--watch-ci` on this first source commit if the target starting HEAD lacks a committed `config/delivery-required-ci.json`.** Devtool v3.1 rejects it before apply. Onboard target CI only with real workflow IDs after the workflow exists; create a new source-bound native session and use native `ci` to qualify the actual PR HEAD. No workflow IDs were invented in this bundle.
-
-After a committed apply, use `status`, `resume`, `deliver`, or `ci` with exact session ID. Never replay `apply` or drift a previously built immutable package. Failure logs from launcher/native run must be preserved; on failure only, the launcher suggests an opt-in `termux-clipboard-set < PRIVATE_LOG_PATH` after reviewing secrets. No auto-copy, no Textual hosts.
-
-**Evidence status:** local static tests and payload hashes only. Native Devtool apply, compile, emulator, device, signing, PR and hosted CI are not performed.
+This package is validated locally for source syntax, static and negative Python tests, payload/hash provenance, and Zsh-compatible stage structure. Native Devtool check, atomic apply/commit, hosted CI, Android Gradle build, LSPosed device and release qualification are unperformed by the package creator.

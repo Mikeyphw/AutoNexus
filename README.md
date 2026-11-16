@@ -32,9 +32,13 @@ Build with Android SDK 36, JDK 17 and Gradle 8.13. The AGP pin is 8.13.2 and Kot
 
 The Xposed legacy API (`de.robv.android.xposed:api:82`) is a **compileOnly** dependency; only the framework supplies it at runtime. The restricted Appodeal artifact repository in settings is used for that historical API coordinate; confirm the artifact source and checksum before production release. Dependency/artifact resolution was not tested in the offline authoring environment.
 
-## Delivery
+## Delivery and CI
 
-Never extract the payload directly over a real repository. `delivery/plan.json` and `payload/` are inputs to Devtool's **native** `launcher_contract_v3` builder. They are NOT a Devtool overlay or native `.pyz` by themselves. AutoNexus requires a canonical GitHub origin, named, clean branch and exact initial HEAD before a v3.1 immutable launcher can be generated. Read `docs/DEVTOOL_DELIVERY.md` and `delivery/STATUS.json` first.
+The initial bootstrap was committed at `765371659edcc8439e395ccddaccb0956e68b358` on `feature/autonexus-bootstrap`, with open draft PR #1. The first hosted Android source gate failed on the legacy Kotlin `kotlinOptions { jvmTarget = "17" }` syntax; the consolidated CI-repair overlay migrates to the typed `compilerOptions` DSL, tests DEX class definitions (not only APK ZIP names), and adds the committed Devtool required-CI policy for the actual GitHub workflow ID.
+
+All source changes are delivered exclusively with the native Devtool Launcher v3.1+ immutable package: source/branch/HEAD/tree/preimage verification, native overlay validation, atomic commit, durable session, approved push/PR and exact-head CI observation. This repository's `.devtool` private receipts are never deleted to satisfy a clean-source check; the repair package is built and applied in a separate clean, verified checkout of the same feature branch.
+
+CI does not prove Android 16 physical LSPosed loading, device behavior or signed release readiness. See `docs/DEVTOOL_DELIVERY.md` and `docs/VALIDATION.md`.
 
 ## Default behavior and privacy
 

@@ -23,6 +23,8 @@ jobs:
         run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
       - name: Current bootstrap static and negative tests
         run: python3 tools/verify_bootstrap.py --repo .
+      - name: Bootstrap config and DEX parser regression tests
+        run: python3 -m unittest discover -s tools -p "test_*.py" -v
       - name: Android compile, unit tests and lint
         run: gradle :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --no-daemon --stacktrace
       - name: Confirm APK does not package legacy Xposed classes
