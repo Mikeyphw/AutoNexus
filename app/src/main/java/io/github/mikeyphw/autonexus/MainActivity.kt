@@ -54,6 +54,7 @@ import io.github.mikeyphw.autonexus.core.DomainSettings
 import io.github.mikeyphw.autonexus.core.DomainSettingsContract
 import io.github.mikeyphw.autonexus.settings.DomainSettingsStore
 import kotlinx.coroutines.launch
+import io.github.mikeyphw.autonexus.termuxtasker.TermuxTaskerPanel
 
 /** A dashboard for explicit future intent and read-only checks, not a hook switch. */
 class MainActivity : ComponentActivity() {
@@ -135,6 +136,12 @@ class MainActivity : ComponentActivity() {
                         icon = { Text("ⓘ") },
                         label = { Text("Diagnostics") },
                     )
+                    NavigationBarItem(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        icon = { Text("↔") },
+                        label = { Text("Termux:Tasker") },
+                    )
                 }
             },
         ) { insets ->
@@ -157,7 +164,7 @@ class MainActivity : ComponentActivity() {
                     OutlinedButton(onClick = { refreshNonce++ }, modifier = Modifier.fillMaxWidth()) {
                         Text("Recheck installed packages")
                     }
-                } else {
+                } else if (selectedTab == 1) {
                     DiagnosticsCard(refreshNonce, onRefresh = { refreshNonce++ })
                     for (domain in DomainRegistry.domains) {
                         val observed = remember(domain, refreshNonce) { packageProbe(domain) }
@@ -176,6 +183,8 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     ValidationSteps()
+                } else {
+                    TermuxTaskerPanel()
                 }
                 Spacer(Modifier.height(12.dp))
             }
@@ -228,7 +237,12 @@ class MainActivity : ComponentActivity() {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Show local diagnostics", style = MaterialTheme.typography.bodyMedium)
-                        Text("Package metadata only • no logging", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            if (domain == Domain.TERMUX_TASKER)
+                                "Local package metadata; TT read-only trace is controlled separately by LSPosed scope"
+                            else "Package metadata only • no logging",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     }
                     Switch(
                         checked = settings.localDiagnosticsEnabled,

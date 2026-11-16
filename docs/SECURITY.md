@@ -12,3 +12,12 @@
 10. Any future root or behavior adapter requires narrow privilege grants, authenticated IPC, version/ROM verification, opt-in, independent fault isolation, rollback and actual physical acceptance.
 11. Debug APK artifacts are non-release test binaries, short-lived (7 days), bound to source SHA and packaged with SHA-256. No claim of release signing or device validity.
 12. Native Devtool is the sole overlay mutation/delivery authority. No manual patches to the user's worktree, resets, rebases, force pushes, silent repins or destruction of native receipts.
+
+## TT-F0 trace privacy
+
+Only fixed stage/outcome enums, process category, local sequence and elapsed
+time are emitted. No Tasker action content is read from intents or bundles.
+Exact installed signing certificate, version name and code are attested before
+method hooks install. The module never starts services, repeats commands,
+grants `RUN_COMMAND` or claims that a local `signalFinish` return is accepted
+by the Tasker host. See `docs/TERMUX_TASKER_IMPLEMENTATION.md`.

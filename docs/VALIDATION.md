@@ -96,3 +96,21 @@ all existing security checks stay in effect. This correction has source-level
 local tests only until a new exact-HEAD Android compile, JVM tests, lint,
 APK DEX check and artifact upload complete. Physical LSPosed/device and
 production signing remain separately unverified.
+
+## Termux:Tasker TT-F0 (read-only, not an IPC fix)
+
+- The exact user APK SHA-256 and certificate are pinned in
+  `TraceProtocol.kt` / `TrustedTarget.kt`. Unknown installed identities are
+  not hooked. Read-only observations are installed in the existing LSPosed
+  package scope after `Application.attach`, without any extra permissions.
+- `tools/test_termux_tasker_contract.py` checks method signatures derived
+  from upstream v0.9.0, exact identity gating, non-mutating/no-payload hooks,
+  root/scope invariants and privacy. `TraceProtocolTest.kt` exercises signer
+  mismatch, ordered result classification, exception categorization and safe
+  bounded logs. Existing gates remain active and source-bound.
+- The hosted Gradle check still must run assemble, JVM tests, lint and DEX
+  inspection. A green run qualifies build only; device traces, installed
+  signer, Tasker IPC acceptance and editor integration require physical tests.
+- On-device operating instructions and exclusions are in
+  `docs/TERMUX_TASKER_IMPLEMENTATION.md`. No old historical test chain was
+  deleted; existing security gates are preserved.

@@ -5,6 +5,8 @@
         <package android:name="com.joaomgcd.autoinput" />
         <package android:name="com.joaomgcd.autotools" />
         <package android:name="com.termux.tasker" />
+        <package android:name="com.termux" />
+        <package android:name="net.dinglisch.android.taskerm" />
     </queries>
     <application
         android:allowBackup="false"

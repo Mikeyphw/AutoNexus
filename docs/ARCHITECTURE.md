@@ -21,3 +21,13 @@ This storage belongs exclusively to the AutoNexus Activity. Injected target proc
 ## Future domain work
 
 The four detailed `docs/roadmaps/` remain specifications, not implemented behavior. Runtime adapters, editor injection, IPC fixes, optional root and conditional SystemUI hooks remain blocked on real-device baselines and separately reviewed native overlay changes. Do not auto-retry unknown-state Tasker commands. Physical LSPosed acceptance is independent of hosted JVM/Android build success.
+
+## TT-F0 observational boundary
+
+The Termux:Tasker scope may load version/signature-pinned Xposed read-only
+method hooks, which never set hook results or change execution state.
+Observations are bounded to 160 closed-enum events per process and only
+visible in LSPosed logs; the companion app uses PackageManager/UserManager
+read-only checks. No cross-app IPC, storage provider, command execution or
+automated recovery channel is added. This does not enable the false
+`RuntimeGate` behavior/privilege flags.

@@ -19,7 +19,7 @@ The preflight stage intentionally contains **zero behavior-changing method hooks
 - Versioned, private, atomic per-domain preferences. Settings cannot be read from LSPosed target processes; no authenticated settings IPC or behavior hooks exist yet.
 - Live package-manager version/reference comparison, with explicit "not installed or not visible" uncertainty; LSPosed activation remains unknown from the companion UI.
 - Debug APK hosting workflow pinned to exact PR HEAD with SHA-256 and seven-day retention for physical acceptance. This is **not release signing**.
-- Preflight version `0.2.0-preflight` / versionCode `2`.
+- Preflight version `0.3.0-tt-f0` / versionCode `3` (Termux:Tasker diagnostics).
 - Single Android application ID `io.github.mikeyphw.autonexus` and legacy LSPosed registration (`xposed_init`, manifest scope).
 - Material 3 dashboard with four status cards and installed-package visibility checks. No mocked privilege status.
 - Pure domain registry, versioned compatibility reference data, scope isolation, and fail-closed runtime gate.
@@ -27,9 +27,21 @@ The preflight stage intentionally contains **zero behavior-changing method hooks
 - JVM unit tests, static artifact integrity/security tests, and an Android GitHub Actions source gate.
 - Final consolidated roadmaps stored under `docs/roadmaps/`, plus delivery and security contracts.
 
+## Termux:Tasker TT-F0 observability
+
+Termux:Tasker **v0.9.0 / code 1002 / exact supplied F-Droid certificate** now has
+version-gated, read-only LSPosed observations for receiver, service dispatch,
+results service and Tasker callback API. A companion diagnostics tab shows
+Tasker/Termux package, Tasker RUN_COMMAND grant and user-unlock state.
+Observation does not establish host acceptance, and logs are available only
+through the LSPosed manager (no cross-process log service). This feature is
+active only when the user explicitly enables the Termux:Tasker LSPosed scope;
+the companion `Request future enhancements` switch remains staged. See
+`docs/TERMUX_TASKER_IMPLEMENTATION.md` for supported versions and physical tests.
+
 ## What is NOT implemented
 
-No effective enhancement hooks, HTML fixes, UI editor overlays, Tasker IPC fixes, JSON engine replacements, gesture retries, injection into SystemUI, root daemon, release signing, or real-device tests. These are planned features, not bootstrap acceptance claims.
+No behavior-changing enhancement hooks, HTML fixes, UI editor overlays, Tasker IPC fixes, JSON engine replacements, gesture retries, injection into SystemUI, root daemon, release signing, or real-device tests. These are planned features, not bootstrap acceptance claims.
 
 ## Build
 

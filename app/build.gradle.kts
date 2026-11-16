@@ -13,8 +13,8 @@ android {
         applicationId = "io.github.mikeyphw.autonexus"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.2.0-preflight"
+        versionCode = 3
+        versionName = "0.3.0-tt-f0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
