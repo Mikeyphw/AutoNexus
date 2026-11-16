@@ -5,7 +5,7 @@ No skipped check counts as a pass. All validation stages keep the module behavio
 ## Source and JVM
 
 1. `python3 tools/verify_bootstrap.py --repo .`: existing scope, Xposed, fail-closed runtime/root, Kotlin DSL and CI identity checks.
-2. `python3 -m unittest discover -s tools -p 'test_*.py' -v`: the existing 15 bootstrap security, DEX and CI tests plus 10 dashboard/security/checkout negatives.
+2. `python3 -m unittest discover -s tools -p 'test_*.py' -v`: the existing bootstrap, DEX, CI, dashboard, Kotlin-DSL, Compose SDK-compatibility and Maven-429 negative tests, plus Compose weight-scope import regressions.
 3. `gradle :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --no-daemon --stacktrace`: hosted/local Android, Compose compilation, JVM unit and lint gates, including `DomainSettingsTest` and `DomainSettingsStoreTest` with a deterministic, in-memory SharedPreferences double.
 4. `python3 tools/verify_bootstrap.py --repo . --apk app/build/outputs/apk/debug/app-debug.apk`: actual DEX class-definition safety (Xposed API not bundled; the entry class present).
 
@@ -77,3 +77,22 @@ compile, JVM tests, lint and DEX/APK verification. Existing native Devtool
 session `85c6107867a4408e8043f27af8392c63` is already committed; never
 reapply that old package. A **new** native source-bound overlay/session is
 required for this compatibility change.
+
+## Compose Kotlin compile correction (preflight v0.2.0)
+
+On 2026-11-16, the source-bound GitHub Actions run
+[`43940397810`](https://github.com/Mikeyphw/AutoNexus/actions/runs/43940397810)
+for commit `e87daca16858cdf3df27c873d889432f8f51b69f`
+**passed** AAR metadata, reached `:app:compileDebugKotlin`, and failed because
+`MainActivity.kt:18` imported `androidx.compose.foundation.layout.weight`
+as if it were a top-level public function. The resolved Compose API supplies
+`Modifier.weight()` as a member extension of `RowScope` or `ColumnScope`;
+`Column(Modifier.weight(1f))` within an existing `Row` lambda resolves without
+that import. The repair removes **only** the invalid import and adds positive
+and negative regression checks.
+
+The previous Android SDK 36 / AGP 8.13.2 / Compose BOM 2026.06.01 pins and
+all existing security checks stay in effect. This correction has source-level
+local tests only until a new exact-HEAD Android compile, JVM tests, lint,
+APK DEX check and artifact upload complete. Physical LSPosed/device and
+production signing remain separately unverified.

@@ -51,7 +51,33 @@ def workflow_is_exact_source_and_bounded(workflow):
     assert 'verify_bootstrap.py --repo . --apk' in workflow
 
 
+def verify_weight_scope_imports(source):
+    # weight() is a RowScope/ColumnScope member extension, not a public
+    # top-level import. Kotlin 2.3.21 / Compose 1.11 compilation rejected
+    # androidx.compose.foundation.layout.weight at PR #1 run 43940397810.
+    assert not re.search(r'(?m)^\s*import\s+androidx\.compose\.foundation\.layout\.weight\s*$', source), (
+        'Invalid top-level Compose weight import; keep RowScope member extension'
+    )
+    # Both weighted domain-control text columns must still live in Row scope.
+    assert source.count('Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically)') == 2
+    assert source.count('Column(Modifier.weight(1f))') == 2
+
+
 class AndroidStageContractTests(unittest.TestCase):
+    def test_compose_weight_resolves_in_row_scope_without_top_level_import(self):
+        verify_weight_scope_imports(read('app/src/main/java/io/github/mikeyphw/autonexus/MainActivity.kt'))
+
+    def test_importing_internal_weight_is_rejected(self):
+        source = read('app/src/main/java/io/github/mikeyphw/autonexus/MainActivity.kt')
+        mutant = source.replace(
+            'import androidx.compose.foundation.layout.padding\n',
+            'import androidx.compose.foundation.layout.padding\n'
+            'import androidx.compose.foundation.layout.weight\n',
+        )
+        self.assertNotEqual(mutant, source)
+        with self.assertRaises(AssertionError):
+            verify_weight_scope_imports(mutant)
+
     def test_material3_and_typed_kotlin(self):
         verified_plugin_build(read('build.gradle.kts'), read('app/build.gradle.kts'))
 

@@ -73,3 +73,13 @@ The next consolidated change selects stable BOM 2026.06.01 (Compose core
 1.11.4, Material3 1.4.0) and updates the existing build contract tests. It
 retains compileSdk/targetSdk 36, AGP 8.13.2, and all no-hook/root safeguards.
 The new hosted Android build, APK and device acceptance are still pending.
+
+## Kotlin Compose scope correction (source-only until hosted CI)
+
+The SDK36 Compose dependency correction allowed the hosted preflight build to
+reach Kotlin compilation, which exposed an invalid top-level `weight` import
+in `MainActivity.kt`. The consolidated follow-up removes that import while
+preserving the two Row-scoped `Modifier.weight(1f)` calls and adds regression
+tests. It does not change app behavior, root/LSPosed scope, device permissions,
+or dependencies. A new exact-HEAD Android build is required before accepting
+the UI as compiled; device acceptance is still outstanding.
