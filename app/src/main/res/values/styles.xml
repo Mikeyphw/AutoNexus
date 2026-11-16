@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.AutoNexus" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">#275D9A</item>
+        <item name="android:statusBarColor">#172439</item>
+        <item name="android:navigationBarColor">#172439</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

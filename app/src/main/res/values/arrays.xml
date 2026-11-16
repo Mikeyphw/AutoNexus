@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="xposed_scope">
+        <item>com.joaomgcd.autonotification</item>
+        <item>com.joaomgcd.autoinput</item>
+        <item>com.joaomgcd.autotools</item>
+        <item>com.termux.tasker</item>
+    </string-array>
+</resources>
