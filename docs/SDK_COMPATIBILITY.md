@@ -1,7 +1,9 @@
 # SDK / LSPosed compatibility decision
 
-This bootstrap targets Android 16 / SDK 36, Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin Gradle Plugin 2.3.21 and JDK 17. The Kotlin compiler is configured through the supported `kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }` DSL to match Java source/target compatibility 17. The deprecated `android.kotlinOptions { jvmTarget = "17" }` was rejected by the hosted Gradle Kotlin DSL compiler on AutoNexus PR #1, run 43847118183.
-
-The legacy Xposed API 82 remains compile-only pending framework/device verification. The built APK gate reads actual DEX class definitions to ensure Xposed runtime classes are not packaged, while allowing expected interface references. A modern libxposed entry must not be introduced without runtime probing and duplicate-entry protection.
-
-LSPosed scopes remain exactly the four supplied plugin packages: AutoNotification, AutoInput, AutoTools, and Termux:Tasker. No SystemUI, Tasker host or `system_server` scope is enabled. Root operations and behavior hooks are fail-closed. These source/toolchain decisions are not proof of Android 16 device compatibility; build, unit tests, lint and device acceptance are separate.
+- Android application: `compileSdk=36`, `targetSdk=36`, `minSdk=26`; Java/JVM 17.
+- Gradle 8.13; Android Gradle Plugin 8.13.2; Kotlin/Compose Compiler Gradle plugin **both pinned to 2.3.21**.
+- Compose BOM `2026.09.00` with AndroidX Material 3; activity-compose `1.13.0`. Google Maven/repository settings already exist. The hosted Gradle gate must resolve and compile actual dependencies before compatibility can be claimed.
+- Android 12+ dynamic system theme when supported, static Material3 light/dark fallback on older devices.
+- Legacy Xposed API `82` remains compileOnly. LSPosed/Vector loading on a real Android 16 device has **not** been proven; no modern libxposed double-entry fallback is automatically enabled.
+- Only four ordinary app package scopes; no SystemUI/`system_server`, no native root executor. Installed APK reference versions are expectations from earlier supplied static analysis, not observed facts about the device.
+- Preflight version `0.2.0-preflight` (versionCode 2) is for debug device acceptance, not a signed production release. A debug APK artifact is not evidence of working LSPosed scope loading.

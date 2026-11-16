@@ -11,6 +11,13 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7 observed 2026-11-16
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact PR source HEAD
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6 observed 2026-11-16
         with:
           distribution: temurin
@@ -29,3 +36,17 @@ jobs:
         run: gradle :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --no-daemon --stacktrace
       - name: Confirm APK does not package legacy Xposed classes
         run: python3 tools/verify_bootstrap.py --repo . --apk app/build/outputs/apk/debug/app-debug.apk
+      - name: Record debug APK SHA and source for physical acceptance
+        run: |
+          (cd app/build/outputs/apk/debug && sha256sum app-debug.apk > app-debug.apk.sha256)
+          git rev-parse HEAD > app/build/outputs/apk/debug/source-commit.txt
+      - name: Upload debug APK (not signed for release)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2, verified commit
+        with:
+          name: autonexus-preflight-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/debug/app-debug.apk.sha256
+            app/build/outputs/apk/debug/source-commit.txt
+          if-no-files-found: error
+          retention-days: 7
