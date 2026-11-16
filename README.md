@@ -52,3 +52,13 @@ All feature behavior hooks and privileged operations default disabled. Hooks nev
 ## Preflight device acceptance (proposed follow-up)
 
 The consolidated preflight overlay is based on source HEAD `779a76ee1126de52fc09adb759997b03f48c29d6`, with a **hosted CI success for the prior CI repair only**. Do not claim the new Material 3/Compose UI compiles or runs until its own exact-head checks pass. After native delivery, obtain the short-lived `autonexus-preflight-SHA` debug APK artifact from the PR Actions run, check `app-debug.apk.sha256` and `source-commit.txt`, then explicitly install/test it. LSPosed target scopes remain manual, exactly four plugin packages. Do not add system packages. See `docs/VALIDATION.md` for the acceptance checklist.
+
+## CI dependency rate limits
+
+The hosted Material 3 preflight run on the feature branch encountered Maven
+Central HTTP 429 while resolving Gradle classpath artifacts, before Android
+compilation. The CI-only wrapper retries the *same* Android build, JVM tests,
+and lint tasks at most three times **only** for confirmed dependency-resolution
+429 responses. Other failures remain failures; the wrapper cannot guarantee
+recovery from persistent upstream throttling. See `docs/VALIDATION.md` for
+failure evidence, tests, and acceptance boundaries.

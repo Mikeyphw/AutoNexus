@@ -27,3 +27,27 @@ The existing `config/delivery-required-ci.json` pins repository `Mikeyphw/AutoNe
 ## Cleanup and security
 
 Existing legacy bootstrap tests are retained, not bypassed. New checks cover private data, staged-only toggles, exact CI checkout, and bounded artifact retention. There are no obsolete historical HFxx/Pxx/Rxx test chains in this repository. Native RUN-V3 and LIFE receipts must remain untouched. Do not rerun an immutable launcher after it already committed; resume the durable session instead.
+
+## Hosted dependency-rate-limit recovery (CI-only)
+
+On the exact PR HEAD `6fe71361ce711501346416fa12ddb9c56b1a6d5e`, Actions run
+`43933740068` failed during the Gradle root project's plugin classpath resolution.
+Maven Central returned **HTTP 429 Too Many Requests** across transitive plugin
+artifacts. Source validation and all 25 Python regression checks passed; this
+run **did not** compile Android, run JVM tests or lint, or produce the debug APK.
+
+`tools/ci_gradle_rate_limit.py` runs the **same mandatory Gradle tasks** and
+forwards each attempt's real output. The only retry classification is a genuine
+Gradle dependency-resolution failure with a Maven GET HTTP 429. It runs at most
+three attempts with backoff (45s and 120s). Compilation, JVM-test, lint,
+missing artifact, HTTP 403/404, and generic failures are **never** treated as
+rate-limit successes. Persistent 429 failures remain red. Existing source,
+DEX, runtime-safety, APK and artifact checks are retained; tests for retry
+logic are included in `tools/test_ci_gradle_rate_limit.py` and run in the
+existing Python unittest gate.
+
+Rerunning the failed workflow was attempted through a GitHub integration and
+refused with HTTP 403 (Actions write permission missing). No hosted rerun or
+qualification should be claimed from this source-only hardening. The retry
+wrapper does not bypass Devtool's native required-CI policy, change device
+behavior, or promote a debug APK to a signed release.
