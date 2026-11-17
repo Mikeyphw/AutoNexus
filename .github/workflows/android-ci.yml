@@ -1,0 +1,54 @@
+name: AutoNexus Android source gate
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  source-and-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7 observed 2026-11-16
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact PR source HEAD
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6 observed 2026-11-16
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4 observed 2026-11-16
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6 observed 2026-11-16
+        with:
+          gradle-version: '8.13'
+      - name: Install pinned Android API and build tools
+        run: sdkmanager "platforms;android-36" "build-tools;35.0.0"
+      - name: Current bootstrap static and negative tests
+        run: python3 tools/verify_bootstrap.py --repo .
+      - name: Bootstrap config and DEX parser regression tests
+        run: python3 -m unittest discover -s tools -p "test_*.py" -v
+      - name: Android compile, unit tests and lint (bounded Maven 429 recovery)
+        run: |
+          python3 tools/ci_gradle_rate_limit.py -- \
+            gradle :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --no-daemon --stacktrace
+      - name: Confirm APK does not package legacy Xposed classes
+        run: python3 tools/verify_bootstrap.py --repo . --apk app/build/outputs/apk/debug/app-debug.apk
+      - name: Record debug APK SHA and source for physical acceptance
+        run: |
+          (cd app/build/outputs/apk/debug && sha256sum app-debug.apk > app-debug.apk.sha256)
+          git rev-parse HEAD > app/build/outputs/apk/debug/source-commit.txt
+      - name: Upload debug APK (not signed for release)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2, verified commit
+        with:
+          name: autonexus-preflight-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/debug/app-debug.apk.sha256
+            app/build/outputs/apk/debug/source-commit.txt
+          if-no-files-found: error
+          retention-days: 7
