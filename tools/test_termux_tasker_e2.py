@@ -76,6 +76,13 @@ class EditorE2ContractTests(unittest.TestCase):
                       read('app/src/main/java/io/github/mikeyphw/autonexus/core/RuntimeGate.kt'))
         self.assertIn('versionCode = 5',read('app/build.gradle.kts'))
         self.assertIn('versionName = "0.5.0-tt-e2"',read('app/build.gradle.kts'))
+    def test_jvm_tests_use_android_supported_file_writes(self):
+        source = read('app/src/test/java/io/github/mikeyphw/autonexus/termuxtasker/ScriptExplorerTest.kt')
+        self.assertNotIn('Files.writeString(', source)
+        self.assertIn('Files.write(', source)
+        self.assertIn('toByteArray(Charsets.UTF_8)', source)
+        self.assertIn('ByteArray(0)', source)
+
     def test_docs_do_not_claim_ipc_fix(self):
         s=read('docs/TERMUX_TASKER_IMPLEMENTATION.md')
         self.assertIn('NO IPC FIX CLAIM',s)

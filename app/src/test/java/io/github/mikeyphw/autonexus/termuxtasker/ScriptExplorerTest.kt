@@ -5,6 +5,8 @@ import org.junit.Test
 import java.nio.file.Files
 
 class ScriptExplorerTest {
+    // Files.writeString is absent from the Android SDK 36 Java stubs; use Java 7 Files.write.
+
     @Test fun missingFolderIsUnavailableNotInvented() {
         val root = Files.createTempDirectory("tt-e2-missing-")
         try {
@@ -17,7 +19,7 @@ class ScriptExplorerTest {
         val root = Files.createTempDirectory("tt-e2-list-")
         try {
             Files.createDirectory(root.resolve("subdir"))
-            Files.writeString(root.resolve("example.sh"), "SECRET FILE BODY NOT READ")
+            Files.write(root.resolve("example.sh"), "SECRET FILE BODY NOT READ".toByteArray(Charsets.UTF_8))
             val listing = ScriptExplorer.browse(root.toFile(), root.toFile())
             assertTrue(listing.available)
             assertEquals(listOf("subdir", "example.sh"), listing.entries.map { it.label })
@@ -37,7 +39,7 @@ class ScriptExplorerTest {
         val root = Files.createTempDirectory("tt-e2-root-")
         val elsewhere = Files.createTempDirectory("tt-e2-other-")
         try {
-            Files.writeString(elsewhere.resolve("secret.sh"), "KEEP PRIVATE")
+            Files.write(elsewhere.resolve("secret.sh"), "KEEP PRIVATE".toByteArray(Charsets.UTF_8))
             Files.createSymbolicLink(root.resolve("escape"), elsewhere)
             val listing = ScriptExplorer.browse(root.toFile(), root.toFile())
             assertTrue(listing.available)
@@ -48,7 +50,7 @@ class ScriptExplorerTest {
     @Test fun limitsDirectoryOutput() {
         val root = Files.createTempDirectory("tt-e2-many-")
         try {
-            repeat(ScriptExplorer.MAX_ENTRIES + 8) { Files.writeString(root.resolve("f$it"), "") }
+            repeat(ScriptExplorer.MAX_ENTRIES + 8) { Files.write(root.resolve("f$it"), ByteArray(0)) }
             val list = ScriptExplorer.browse(root.toFile(), root.toFile())
             assertTrue(list.available)
             assertEquals(ScriptExplorer.MAX_ENTRIES,list.entries.size)
@@ -59,7 +61,7 @@ class ScriptExplorerTest {
         val root = Files.createTempDirectory("tt-e2-internal-link-")
         try {
             val child = Files.createDirectory(root.resolve("real"))
-            Files.writeString(child.resolve("safe.sh"), "not executed")
+            Files.write(child.resolve("safe.sh"), "not executed".toByteArray(Charsets.UTF_8))
             val link = Files.createSymbolicLink(root.resolve("alias"), child)
             val listing = ScriptExplorer.browse(root.toFile(), link.toFile())
             assertFalse(listing.available)
@@ -71,7 +73,7 @@ class ScriptExplorerTest {
         try {
             // Valid file comes after many skipped entries; do not scan unlimited
             // directory entries trying to fill all 60 display slots.
-            val target = Files.writeString(root.resolve("real.sh"), "")
+            val target = Files.write(root.resolve("real.sh"), ByteArray(0))
             repeat(ScriptExplorer.MAX_INSPECTED + 40) {
                 Files.createSymbolicLink(root.resolve("skip${it.toString().padStart(5,'0')}"), target)
             }

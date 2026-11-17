@@ -131,3 +131,20 @@ production signing remain separately unverified.
 - Device acceptance: check the optional browser under the plugin UID; if inaccessible, verify fallback, not a guessed success. Save/Discard/Original plus activity recreation, mode toggles and `%variables` require physical confirmation. No IPC reliability or release claim is made.
 
 TT-E2 revised acceptance: test editor transition `EditorDraftBridgeTest` (discard/current Original/re-entry), test `ScriptExplorerTest` (bounded scanning, internal/escaped symlinks, depth, limits), run Python contracts and security gates. Wrapper source/package SHA verification is independently tested with altered bytes. Native Devtool `check`, hosted Android compile/test/lint, real LSPosed/Tasker and release remain separate qualifications; do not mark unperformed tests passed.
+
+## TT-E2 hosted Kotlin unit-test compilation repair (2026-11-17)
+
+The exact feature-branch PR HEAD `f3fd62d00966db0538b1b4c9273556436f444f5e`
+failed GitHub Actions run `43999132101` at `:app:compileDebugUnitTestKotlin`.
+`ScriptExplorerTest.kt` used five `Files.writeString(...)` calls, which are
+missing from the Android SDK 36 Java API stubs despite local JDK availability.
+The fix uses `Files.write(Path, ByteArray)` and explicit UTF-8 byte arrays or
+zero-length arrays; test assertions, production `ScriptExplorer.kt`, scope,
+permissions and Gradle version remain unchanged. `tools/test_termux_tasker_e2.py`
+now rejects reinstating the unsupported method. No failing or obsolete checks
+were removed or skipped. The repaired source requires a **new exact-HEAD**
+Gradle assemble/JVM/lint/DEX workflow, uploaded APK evidence and native Devtool
+CI qualification. A previous green test on a host JDK is not an Android build pass.
+The original TT-E2 overlay has already committed; use its existing durable
+Devtool session for its status, and the new source-bound correction package only
+once. Never attempt to reapply TT-E2 itself or rewrite the existing commit.
