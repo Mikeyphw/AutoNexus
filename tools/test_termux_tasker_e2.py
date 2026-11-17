@@ -25,8 +25,9 @@ class EditorE2ContractTests(unittest.TestCase):
     def test_browse_is_optin_and_readonly_and_bounded(self):
         s=read(P+'EnhancedEditorHooks.kt')
         explorer=read(P+'ScriptExplorer.kt')
-        self.assertIn('Browse Termux scripts (read-only, if accessible)',s)
-        self.assertIn('browseScripts(state, File(ScriptExplorer.TERMUX_SCRIPTS), false)',s)
+        self.assertIn('Select executable',s)
+        self.assertIn('choosePath(state, false, pairs[0].second)',s)
+        self.assertIn('browseScripts(state, root, directoryOnly)',s)
         self.assertIn('val browseGeneration = AtomicInteger(0)',s)
         self.assertIn('MAX_ENTRIES = 60',explorer)
         self.assertIn('MAX_DEPTH = 5',explorer)
@@ -74,8 +75,8 @@ class EditorE2ContractTests(unittest.TestCase):
                       read('app/src/main/java/io/github/mikeyphw/autonexus/core/RuntimeGate.kt'))
         self.assertIn('const val ROOT_ENABLED = false',
                       read('app/src/main/java/io/github/mikeyphw/autonexus/core/RuntimeGate.kt'))
-        self.assertIn('versionCode = 5',read('app/build.gradle.kts'))
-        self.assertIn('versionName = "0.5.0-tt-e2"',read('app/build.gradle.kts'))
+        self.assertIn('versionCode = 6',read('app/build.gradle.kts'))
+        self.assertIn('versionName = "0.6.0-tt-f1-ui"',read('app/build.gradle.kts'))
     def test_jvm_tests_use_android_supported_file_writes(self):
         source = read('app/src/test/java/io/github/mikeyphw/autonexus/termuxtasker/ScriptExplorerTest.kt')
         self.assertNotIn('Files.writeString(', source)

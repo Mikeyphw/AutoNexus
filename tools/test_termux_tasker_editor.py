@@ -64,7 +64,7 @@ class EditorBridgeTests(unittest.TestCase):
         self.assertIn('MAX_STDIN_CHARS = 45000',self.draft)
         self.assertIn('range == null',self.draft)
     def test_original_fallback_discards_only_draft(self):
-        self.assertIn('Original editor (discard enhanced draft)',self.bridge)
+        self.assertIn('footerButton("Original", false) { originalEditor(state) }',self.bridge)
         self.assertIn('state.mode.returnToOriginal(currentStock)',self.bridge)
         self.assertIn('state.mode.reopenEnhanced(currentStock)',self.bridge)
         self.assertIn('state.mode.needsDiscardConfirmation(pending, currentStock)',self.bridge)

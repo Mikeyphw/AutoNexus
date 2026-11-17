@@ -45,3 +45,13 @@ This proposed milestone builds on the TT-E1 original-serializer bridge. It adds 
 **Compatibility and evidence:** Source tests and local JVM stub compilation are distinct from hosted Android CI and real-device acceptance. The Termux:Tasker unresponsive-action IPC failure remains unmodified pending a redacted two-sided device trace. The original editor, original Locale bundle serializer, unknown-key guards and safe-off gates remain intact.
 
 TT-E2 native delivery hardening: discarded enhanced drafts never overwrite edits made in the Original editor; reopening Enhanced re-snapshots original fields. Script browsing is opt-in/read-only, capped to 256 scanned entries and 60 displayed, and rejects symlink traversal. Use the reviewed native Devtool delivery script (current main dynamically, no Devtool SHA lock).
+
+### Termux:Tasker TT-F1 editor candidate
+
+The in-process editor now restores stock v0.9.0 path autocomplete when its
+adapter is available, supports non-privileged manual path fallback, and presents
+five accessible sections with fixed controls and adaptive colors. Boot/first-
+unlock failures remain evidence-gated; the Startup section provides an opt-in
+Tasker Wait setup, **not** a script replay or host-ready guarantee. Native
+Devtool delivery, hosted CI and actual Android/LSPosed acceptance must be
+recorded independently before calling this implementation released.

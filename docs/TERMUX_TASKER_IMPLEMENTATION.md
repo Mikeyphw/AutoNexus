@@ -95,3 +95,37 @@ Recommended physical evidence sequence:
 This overlay supplies an evidence-review interface and JVM/security regressions,
 not a claimed hardware diagnosis or executed script. TT-F1's full UI and any
 optional host/Termux adapter remain separately gated by evidence and tests.
+
+## TT-F1 UI and startup-safety consolidation (source prepared; hosted/device checks pending)
+
+- The enhanced Activity now uses a five-section native Android editor
+  (Command / Execution / Results / Startup / Diagnostics), adaptive dark/light
+  colors, larger accessible tap targets and **fixed Save / Original / Discard**
+  controls. Previous eight-field stock serialization, unchanged raw arguments,
+  per-mode values and transient restoration remain authoritative.
+- Executable and working-directory controls are again `AutoCompleteTextView`
+  when the **original v0.9.0 editor provides its typed `ArrayAdapter<String>`**.
+  The original suggestions are copied into a separate local adapter; bounded on-type
+  refresh uses the existing plugin UID under the approved scripts root. No privileged background indexing, shell
+  history, new provider, or secondary Termux process is used. When unavailable,
+  a normal editable field is shown. The original autocomplete remains available
+  using **Original**.
+- The **Select executable** and **Select working directory** buttons always
+  open an explicit chooser. Browse is read-only, limited to the original
+  scripts directory and existing plugin UID permission. If inaccessible, the
+  dialog offers a working **Enter path** fallback, with an immediate visible
+  explanation. Staged paths are not executed, interpreted as SAF content URIs,
+  or written to stock widgets until explicit Save.
+- Startup status explicitly distinguishes device unlocked from **Termux
+  service readiness UNKNOWN**. The observed same-action boot failure and later
+  manual success justify an optional *Tasker-side* boot Wait (about 180 seconds
+  as an initial diagnostic, tunable) before dispatch. AutoNexus cannot safely
+  pause Tasker's already-sent ordered broadcast or reconstruct a Tasker profile
+  using only this plugin's Activity hook. No automatic shell or callback replay
+  occurs. A verified Tasker-side integration and device evidence are still
+  required for a fully automatic readiness gate and for TT-F1 IPC acceptance.
+- This is an incremental implementation **inside TT-F1**, not another roadmap
+  milestone. Future real-device testing must check original autocomplete,
+  path chooser on both accessible and inaccessible UIDs, section persistence,
+  validation/footer visibility, dark/light, accessibility font scale,
+  orientation/Back/Home, exact original Locale Bundle and failed boot handling.

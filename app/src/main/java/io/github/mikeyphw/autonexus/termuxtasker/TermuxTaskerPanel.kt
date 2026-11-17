@@ -133,6 +133,13 @@ fun TermuxTaskerPanel() {
                  "Missing receiver events alone cannot prove Tasker failed to dispatch.")
             Text("4. Record whether failure is before first unlock, just after unlock, " +
                  "or normal operation. Check the Tasker permission without granting it automatically.")
+            HorizontalDivider()
+            Text("Boot-readiness · user-confirmed", fontWeight = FontWeight.SemiBold)
+            Text(BootReadinessPolicy.explanation)
+            Text(BootReadinessPolicy.taskerInstructions)
+            Text("The observed boot race is still uncorrelated to a specific failed IPC request. " +
+                 "No automatic replay, Tasker host hook or shell execution is enabled.",
+                 style = MaterialTheme.typography.bodySmall)
             Text("The editor changes a Tasker action only after explicit Save. No IPC repair, " +
                  "new Tasker bundle keys, SystemUI scope, root execution or permission bypass.",
                  style = MaterialTheme.typography.bodySmall)

@@ -1,27 +1,35 @@
-# TT-E2 native Devtool v3.1+ delivery
+# Termux:Tasker TT-F1 — native Devtool delivery (current)
 
-Current milestone uses the single consolidated reviewed native overlay and the
-Python entry `AutoNexus_TTE2_native_entry.pyz` from the handoff; this entry
-validates reviewed bytes and calls Devtool’s own native Python launcher, not a shell wrapper.
+Use `AutoNexus_TTF1_NativeV31.pyz` for the current TT-F1 consolidated
+editor and startup-safety candidate. It embeds a reviewed immutable overlay,
+**not** a handwritten overlay engine. The entry verifies target Git origin,
+named branch, exact source HEAD/tree, changed-file preimage blobs and payload
+SHA-256; independently verifies the reviewed ZIP before calling the *official*
+Devtool Python builder and native `check`/`apply`/durable delivery/CI.
 
-- The target repository, named feature branch, initial HEAD/tree and changed-file
-  Git blobs remain immutable. Never silently repin the AutoNexus target.
-- Devtool runtime comes dynamically from the latest verifiable clean `main` of
-  `Mikeyphw/devtool` and **is not hardcoded to a Devtool commit**. The native
-  launcher checks its own v3.1+ same-major compatibility and records actual
-  runtime HEAD/tree/blobs in its receipts.
-- The entrypoint independently verifies the reviewed outer-package SHA-256,
-  complete 19-file source inventory, per-file SHA-256, changed-file preimages,
-  exact target Git tree and branch before native building. Tampering refuses.
-- Keep all four `DEVTOOL_*` plain terminal selectors. No Textual/full-screen
-  hosting, clipboard writes, manual worktree patch/apply, non-native commits,
-  resets, rebases, force-pushes, merges, Gradle-on-device or release claims.
-- Native launcher `build`, `check`, then first-time `apply --approve-remote
-  --watch-ci` own the transaction. After commit, resume native durable
-  `status`/`deliver`/`ci`, **never** reapply. The entrypoint refuses if target
-  HEAD has advanced; inspect the durable session first.
+At execution, Devtool comes dynamically from the **latest compatible clean
+`Mikeyphw/devtool` main**. Do not hardcode a historical Devtool commit or
+silently repin the immutable AutoNexus source. The selected runtime's actual
+HEAD/tree/schema/module blobs are re-attested and recorded by the official
+launcher. Its native API determines compatibility; if incompatible, refuse.
 
-TT-E2 includes only Termux:Tasker safe editor enhancements. Android hosted CI,
-LSPosed device behavior and release qualification are separate acceptance steps.
-Prior version-/handoff-specific launcher instructions are historical and **not**
-current execution gates.
+Use a genuine attached terminal and supported environment selectors:
+
+```shell
+export DEVTOOL_EXECUTION_PRESENTATION=plain
+export DEVTOOL_JOB_UI=plain
+export DEVTOOL_TEXTUAL_APPLY_HOST=0
+export DEVTOOL_TEXTUAL_EXECUTION_HOST=0
+python3 -u -B "$HOME/storage/downloads/AutoNexus_TTF1_NativeV31.pyz" apply --approve-remote --watch-ci
+```
+
+The entry passes child native stdout/stderr directly and never uses Textual,
+clipboard APIs, manual patch/apply or Git history rewrites. Preserve user
+worktrees. A committed apply creates a durable native session: if later CI
+fails, use `status`, `deliver`, `ci` or `resume` with the actual session ID,
+**not** the same immutable `apply` again.
+
+Local stub/API compilation is not hosted Android/LSPosed qualification.
+Android 16 plugin autocomplete, picker, first-unlock behavior and exact
+Tasker saved bundle still require on-device tests. This package does not
+silently modify Tasker's startup profile or claim an automatic IPC fix.

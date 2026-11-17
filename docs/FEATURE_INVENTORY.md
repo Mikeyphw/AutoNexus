@@ -32,3 +32,14 @@ TT-E2 regression hardening: current-original-field reentry, throwaway enhanced-o
   that Tasker failed to dispatch or that a command was not executed.
 - No IPC behavior repair, Tasker host hook, script replay, root command, Termux
   original APK modification, SystemUI scope, or acceptance claim.
+
+
+### TT-F1 editor and boot-safety candidate (native validation pending)
+- In-process native themed section navigator with fixed footer, adaptive palette
+- Original path autocomplete adapter suggestions preserved via independent copy
+- Bounded per-query suggestions from accessible script tree and a manual path
+  fallback when Android UID cannot enumerate the folder
+- Opt-in Tasker boot Wait setup and read-only unlock status (service-ready is
+  explicitly UNKNOWN); no startup command delay/replay or extra app component
+- Existing v0.9.0 serializer, version+signer gate, privacy and no-root/no-SystemUI
+  scope unchanged; hosted/physical tests remain separately required

@@ -8,12 +8,21 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.ArrayAdapter
+import android.widget.AutoCompleteTextView
 import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import android.text.InputType
+import android.text.Editable
+import android.text.TextWatcher
+import android.content.Context
+import android.os.UserManager
+import android.os.Handler
+import android.os.Looper
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import de.robv.android.xposed.XC_MethodHook
@@ -210,65 +219,195 @@ object EnhancedEditorHooks {
         )
     }
 
-    private fun field(activity: Activity, label: String, value: String,
-                      multiline: Boolean = false): Pair<LinearLayout, EditText> {
-        val container = LinearLayout(activity).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, px(activity, 8), 0, px(activity, 8))
+    private fun px(activity: Activity, amount: Int): Int =
+        (amount * activity.resources.displayMetrics.density).toInt()
+
+    /**
+     * The stock 0.9.0 Activity uses AutoCompleteTextView and ArrayAdapter<String>
+     * for executable and working-directory suggestions. Keep the same live
+     * adapters (no new filesystem permissions or speculative shell history).
+     * Staging still happens ONLY in this enhanced draft until explicit Save.
+     */
+    private fun stockSuggestions(activity: Activity, stockName: String): List<String> {
+        val source = textField(activity, stockName) as? AutoCompleteTextView ?: return emptyList()
+        val adapter = source.adapter as? ArrayAdapter<*> ?: return emptyList()
+        return (0 until minOf(adapter.count, EditorPathSuggestions.MAX_OPTIONS)).mapNotNull {
+            adapter.getItem(it) as? String
         }
-        container.addView(TextView(activity).apply { text = label; textSize = 15f })
-        val edit = EditText(activity).apply {
+    }
+
+    /** Local adapter is separate from the stock editor's live adapter.
+     * Typeahead can refresh from a restricted, read-only directory listing;
+     * no stock input is modified while typing. If filesystem access fails,
+     * the original adapter snapshot and manual input still remain available. */
+    private fun bindAutocomplete(activity: Activity, view: AutoCompleteTextView,
+                                 stockName: String, initial: List<String>) {
+        val values = ArrayList(initial)
+        val adapter = ArrayAdapter(activity, android.R.layout.simple_dropdown_item_1line, values)
+        view.setAdapter(adapter)
+        view.threshold = 0
+        val request = AtomicInteger(0)
+        val debounce = Handler(Looper.getMainLooper())
+        var scheduled: Runnable? = null
+        view.setOnFocusChangeListener { _, focused ->
+            if (focused && adapter.count > 0) view.showDropDown()
+        }
+        view.setOnClickListener { if (adapter.count > 0) view.showDropDown() }
+        view.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val query = s?.toString() ?: return
+                val serial = request.incrementAndGet()
+                val root = File(ScriptExplorer.TERMUX_SCRIPTS)
+                scheduled?.let { debounce.removeCallbacks(it) }
+                val folder = EditorPathSuggestions.folderForQuery(root, query) ?: return
+                val directoryOnly = stockName == "working_directory_path"
+                val job = Runnable {
+                    if (serial != request.get()) return@Runnable
+                    Thread {
+                        val result = ScriptExplorer.browse(root, folder)
+                        val updated = EditorPathSuggestions.displayOptions(root, folder, query, result, directoryOnly)
+                        activity.runOnUiThread {
+                            if (serial != request.get() || activity.isFinishing || activity.isDestroyed ||
+                                !view.isAttachedToWindow || updated.isEmpty()) return@runOnUiThread
+                            // Never clear the stock app's adapter or change its fields.
+                            adapter.clear()
+                            adapter.addAll(updated)
+                            adapter.notifyDataSetChanged()
+                        }
+                    }.apply { isDaemon = true; start() }
+                }
+                scheduled = job
+                debounce.postDelayed(job, 180L)
+            }
+        })
+    }
+
+    private fun field(activity: Activity, label: String, value: String,
+                      kit: EditorUiKit, stockName: String? = null,
+                      multiline: Boolean = false): Pair<LinearLayout, EditText> {
+        val container = kit.column()
+        container.setPadding(0, px(activity, 8), 0, px(activity, 5))
+        container.addView(kit.label(label))
+        val edit: EditText = if (stockName != null) {
+            AutoCompleteTextView(activity).apply {
+                bindAutocomplete(activity, this, stockName, stockSuggestions(activity, stockName))
+            }
+        } else EditText(activity)
+        edit.apply {
             setText(value)
             setSingleLine(!multiline)
-            if (multiline) { minLines = 2; maxLines = 5 }
+            if (multiline) {
+                minLines = 2; maxLines = 5
+                inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            } else inputType = if (stockName != null) InputType.TYPE_CLASS_TEXT else
+                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
             contentDescription = label
+            kit.styleInput(this)
         }
         container.addView(edit, LinearLayout.LayoutParams(-1, -2))
         return container to edit
     }
-    private fun px(activity: Activity, amount: Int): Int =
-        (amount * activity.resources.displayMetrics.density).toInt()
+
+    /** A path chooser must ALWAYS provide a working manual fallback: the
+     * original plugin process may be denied Termux private-files access. */
+    private fun choosePath(state: Session, directoryOnly: Boolean, current: EditText) {
+        val activity = state.activity
+        val kind = if (directoryOnly) "Working directory" else "Executable"
+        val root = File(ScriptExplorer.TERMUX_SCRIPTS)
+        val suggestion = if (directoryOnly) "Use the script folder or enter another directory" else
+            "Select an accessible script or type an absolute/relative path"
+        AlertDialog.Builder(activity)
+            .setTitle("Choose $kind")
+            .setMessage("$suggestion. Browsing needs the original plugin's filesystem access; no root is used.")
+            .setPositiveButton("Browse scripts") { _, _ -> browseScripts(state, root, directoryOnly) }
+            .setNeutralButton("Enter path") { _, _ -> manualPath(state, directoryOnly, current) }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun manualPath(state: Session, directoryOnly: Boolean, current: EditText) {
+        val activity = state.activity
+        val input = EditText(activity).apply {
+            setSingleLine(true)
+            setText(current.text.toString())
+            setSelection(text.length)
+            contentDescription = if (directoryOnly) "Working directory path" else "Executable path"
+            setPadding(px(activity, 14), px(activity, 12), px(activity, 14), px(activity, 12))
+        }
+        val wrapper = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(px(activity, 16), px(activity, 8), px(activity, 16), 0)
+            addView(input, LinearLayout.LayoutParams(-1, -2))
+        }
+        AlertDialog.Builder(activity)
+            .setTitle(if (directoryOnly) "Enter working directory" else "Enter executable path")
+            .setMessage("The path is staged only. Original Termux:Tasker validates it on Save. " +
+                "Tasker variables are left unchanged.")
+            .setView(wrapper)
+            .setPositiveButton("Use path") { _, _ ->
+                if (!state.enhanced || state.dialog?.isShowing != true) return@setPositiveButton
+                current.setText(input.text.toString())
+                state.validation?.text = "Path staged. No file opened or command executed."
+            }
+            .setNegativeButton("Cancel", null).show()
+    }
 
     private fun show(state: Session) {
         val activity = state.activity
         if (activity.isFinishing || activity.isDestroyed) return
         if (state.dialog?.isShowing == true) return
         val draft = state.draft
-        val root = LinearLayout(activity).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(px(activity, 16), px(activity, 12), px(activity, 16), px(activity, 16))
+        val kit = EditorUiKit(activity)
+        val shell = kit.column().apply { setBackgroundColor(kit.canvas) }
+        val heading = kit.column().apply {
+            setPadding(px(activity, 18), px(activity, 14), px(activity, 18), px(activity, 6))
+            addView(kit.heading("Termux:Tasker"))
+            addView(kit.secondary("Enhanced configuration • Original plugin handles execution and Save"))
         }
-        fun header(title: String, description: String) {
-            root.addView(TextView(activity).apply {
-                text = title; textSize = 19f
-                setPadding(0, px(activity, 12), 0, px(activity, 4))
-            })
-            root.addView(TextView(activity).apply { text = description; textSize = 12f })
+        shell.addView(heading)
+        val tabs = arrayOf("Command", "Execution", "Results", "Startup", "Diagnostics")
+        val nav = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
+        val navScroll = android.widget.HorizontalScrollView(activity).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(nav)
         }
-        header("Command", "Fields are staged locally until Save to Tasker. No command is executed.")
+        shell.addView(navScroll)
+        val sections = ArrayList<LinearLayout>()
+        fun section(title: String, help: String): LinearLayout {
+            val group = kit.column().apply {
+                setPadding(px(activity, 16), px(activity, 10), px(activity, 16), px(activity, 10))
+            }
+            group.addView(kit.heading(title))
+            group.addView(kit.secondary(help))
+            sections.add(group)
+            return group
+        }
+        val command = section("Command", "Edit the original fields without executing any script.")
         val pairs = arrayOf(
-            field(activity, "Executable", draft.executable),
-            field(activity, "Arguments · preserved literally", draft.arguments, true),
-            field(activity, "Working directory", draft.workingDirectory),
-            field(activity, "stdin · not logged", draft.stdin, true),
+            field(activity, "Executable", draft.executable, kit, stockName = "executable_path"),
+            field(activity, "Arguments · preserved literally", draft.arguments, kit, multiline = true),
+            field(activity, "Working directory", draft.workingDirectory, kit, stockName = "working_directory_path"),
+            field(activity, "stdin · not logged", draft.stdin, kit, multiline = true),
         )
-        pairs.forEach { root.addView(it.first) }
-        root.addView(Button(activity).apply {
-            text = "Browse Termux scripts (read-only, if accessible)"
-            setOnClickListener { browseScripts(state, File(ScriptExplorer.TERMUX_SCRIPTS), false) }
+        command.addView(kit.card().apply {
+            addView(pairs[0].first)
+            addView(kit.secondary("Executable suggestions come from the original editor when available."))
+            addView(kit.action("Select executable", primary = false) {
+                choosePath(state, false, pairs[0].second)
+            })
+            addView(pairs[1].first)
+            addView(pairs[2].first)
+            addView(kit.action("Select working directory", primary = false) {
+                choosePath(state, true, pairs[2].second)
+            })
+            addView(pairs[3].first)
         })
-        root.addView(Button(activity).apply {
-            text = "Choose a working directory (if accessible)"
-            setOnClickListener { browseScripts(state, File(ScriptExplorer.TERMUX_SCRIPTS), true) }
-        })
-        val tokenFeedback = TextView(activity).apply {
-            text = "Argument token preview hidden. Uses the original plugin parser, with no script execution."
-            textSize = 12f
-        }
-        root.addView(Button(activity).apply {
-            text = "Preview arguments with original tokenizer"
-            setOnClickListener {
-                // Only display parsed values after an explicit tap. Nothing enters logs or storage.
+        // Keep exact original tokenizer and opt-in preview, never normalize raw argv.
+        val tokenFeedback = kit.secondary("Argument token preview hidden. Original tokenizer; no execution.")
+        command.addView(kit.card().apply {
+            addView(kit.action("Preview arguments with original tokenizer", primary = false) {
                 val preview = ArgumentStudio.inspect(pairs[1].second.text.toString()) { text ->
                     val parser = Class.forName("com.termux.tasker.ArgumentTokenizer", false, activity.classLoader)
                     @Suppress("UNCHECKED_CAST")
@@ -276,72 +415,114 @@ object EnhancedEditorHooks {
                         ?.map { it as? String ?: error("Unexpected tokenizer output") }
                 }
                 tokenFeedback.text = preview.display()
-            }
+            })
+            addView(tokenFeedback)
         })
-        root.addView(tokenFeedback)
-        header("Execution", "Switching mode never discards mode-specific fields.")
+        val execution = section("Execution", "Background is usually preferable for boot-time tasks.")
         val terminal = CheckBox(activity).apply { text = "Execute in terminal session"; isChecked = draft.inTerminal }
-        root.addView(terminal)
-        val action = field(activity, "Terminal session action · raw value", draft.sessionAction)
-        val level = field(activity, "Background log level · raw value", draft.logLevel)
-        root.addView(action.first); root.addView(level.first)
+        val action = field(activity, "Terminal session action · raw value", draft.sessionAction, kit)
+        val level = field(activity, "Background log level · raw value", draft.logLevel, kit)
+        execution.addView(kit.card().apply {
+            addView(terminal)
+            addView(action.first)
+            addView(level.first)
+            addView(kit.secondary("Hidden values remain staged and unchanged. Android may restrict terminal launches in the background."))
+        })
         fun updateModeVisibility() {
             action.first.visibility = if (terminal.isChecked) View.VISIBLE else View.GONE
             level.first.visibility = if (terminal.isChecked) View.GONE else View.VISIBLE
         }
         terminal.setOnClickListener { updateModeVisibility() }
         updateModeVisibility()
-        root.addView(TextView(activity).apply {
-            text = "Hidden mode-specific values remain staged and will not be cleared. " +
-                   "The stock app decides whether Android allows background activity starts."
-            textSize = 12f
-        })
-        header("Results", "Tasker controls the host timeout. Waiting never means the command is safe to retry.")
+        val results = section("Results", "Tasker controls the timeout; never retry a possibly executed script.")
         val wait = CheckBox(activity).apply { text = "Wait for result"; isChecked = draft.waitForResult }
-        root.addView(wait)
-        root.addView(TextView(activity).apply {
-            text = "Background: %stdout, %stdout_original_length, %stderr, " +
-                   "%stderr_original_length, %result, %err, %errmsg. " +
-                   "Terminal: combined transcript; no independent stderr. " +
-                   "Pending acknowledgment, dispatch attempt and Tasker completion are separate. " +
-                   "No plugin-side timeout override or automatic command replay."
-            textSize = 12f
+        results.addView(kit.card().apply {
+            addView(wait)
+            addView(kit.secondary("Background: %stdout, %stdout_original_length, %stderr, %stderr_original_length, " +
+                "%result, %err, %errmsg. Terminal: combined transcript. Local callback return is not proof of Tasker acceptance."))
         })
-        header("Diagnostics", "LSPosed TT_TRACE reports local stages only, not Tasker host acceptance.")
-        val feedback = TextView(activity).apply { textSize = 13f; text = if (state.unknownKeys)
+        val boot = section("Startup readiness", "The failed boot action worked manually after startup.")
+        val bootObservation = kit.secondary("Startup observation not yet refreshed.")
+        fun refreshBootObservation() {
+            val unlocked = try {
+                (activity.getSystemService(Context.USER_SERVICE) as? UserManager)?.isUserUnlocked == true
+            } catch (_: Throwable) { false }
+            val stateNow = BootReadinessPolicy.evaluate(
+                BootReadinessPolicy.Evidence(unlocked, null, null))
+            bootObservation.text = if (unlocked)
+                "User unlocked · Termux service readiness UNVERIFIED · ${stateNow.name}"
+            else "Device locked or unlock state unavailable · ${stateNow.name}"
+        }
+        boot.addView(kit.card().apply {
+            addView(bootObservation)
+            addView(kit.action("Refresh startup state", primary = false) { refreshBootObservation() })
+            addView(kit.label("Boot-time action policy"))
+            addView(kit.secondary(BootReadinessPolicy.explanation))
+            addView(kit.action("Show safe Tasker boot setup", primary = false) {
+                AlertDialog.Builder(activity).setTitle("Tasker: safe boot setup")
+                    .setMessage(BootReadinessPolicy.taskerInstructions)
+                    .setPositiveButton("OK", null).show()
+            })
+            addView(kit.secondary("This editor cannot safely delay an existing Tasker action. " +
+                "No command or callback is queued or replayed by AutoNexus."))
+        })
+        refreshBootObservation()
+        val diagnostic = section("Diagnostics", "Privacy-safe local phases, not Tasker host acknowledgment.")
+        val feedback = kit.secondary(if (state.unknownKeys)
             "Unknown legacy Tasker fields detected. Enhanced Save is disabled; use Original."
-            else "No script execution, permission changes, or new Tasker bundle keys." }
-        root.addView(feedback)
-        val controls = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
-        root.addView(controls)
+            else "No new Bundle keys, permission changes, root calls, or script execution.")
+        diagnostic.addView(kit.card().apply {
+            addView(feedback)
+            addView(kit.secondary("LSPosed TT_TRACE is process-local. Consult TT-F0 boot evidence before behavior changes."))
+        })
+        val footer = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(px(activity, 12), px(activity, 9), px(activity, 12), px(activity, 12))
+            setBackgroundColor(kit.canvas)
+        }
         val fields = arrayOf(pairs[0].second, pairs[1].second, pairs[2].second,
             pairs[3].second, action.second, level.second)
-        state.inputs = fields; state.terminal = terminal; state.waitForResult = wait; state.validation = feedback
+        state.inputs = fields; state.terminal = terminal; state.waitForResult = wait
         val dialog = Dialog(activity).apply { setCancelable(false) }
-        fun button(caption: String, action: () -> Unit) {
-            controls.addView(Button(activity).apply { text = caption; setOnClickListener { action() } },
-                LinearLayout.LayoutParams(-1, -2))
+        val sectionHost = kit.column()
+        sections.forEach { sectionHost.addView(it) }
+        val scroll = ScrollView(activity).apply { isFillViewport = true; addView(sectionHost) }
+        shell.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        val feedbackTop = kit.secondary(if (state.unknownKeys)
+            "Original action contains unsupported fields — use Original." else "Changes are staged until Save.")
+        feedbackTop.setPadding(px(activity, 16), 0, px(activity, 16), 0)
+        shell.addView(feedbackTop)
+        state.validation = feedbackTop  // fixed, always visible; picker errors cannot disappear below the fold
+        fun footerButton(caption: String, primary: Boolean, action: () -> Unit) {
+            footer.addView(kit.action(caption, primary, action), LinearLayout.LayoutParams(0, -2, 1f).apply {
+                marginEnd = px(activity, 5)
+            })
         }
-        button("Validate & Save to Tasker") { save(state) }
-        button("Original editor (discard enhanced draft)") { originalEditor(state) }
-        button("Discard Tasker changes") { discard(state) }
-        button("Keep editing") { feedback.text = "Your draft is still open and has not been saved." }
-        val scroll = ScrollView(activity).apply {
-            isFillViewport = true
-            addView(root)
+        footerButton("Save", true) { save(state) }
+        footerButton("Original", false) { originalEditor(state) }
+        footerButton("Discard", false) { discard(state) }
+        shell.addView(footer)
+        lateinit var activateTab: (Int) -> Unit
+        activateTab = { i ->
+            sections.forEachIndexed { index, container -> container.visibility = if (i == index) View.VISIBLE else View.GONE }
+            nav.removeAllViews()
+            tabs.forEachIndexed { index, name ->
+                nav.addView(kit.nav(name, index == i) { activateTab(index) }, LinearLayout.LayoutParams(-2, -2).apply {
+                    marginStart = px(activity, 6)
+                })
+            }
+            scroll.scrollTo(0, 0)
         }
-        dialog.setContentView(scroll)
+        activateTab(0)
+        dialog.setContentView(shell)
+        state.dialog = dialog
+        dialog.show()
         dialog.window?.apply {
             setLayout((activity.resources.displayMetrics.widthPixels * .96).toInt(),
-                (activity.resources.displayMetrics.heightPixels * .88).toInt())
+                (activity.resources.displayMetrics.heightPixels * .87).toInt())
             setGravity(Gravity.CENTER)
             setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         }
-        state.dialog = dialog
-        dialog.show()
-        // Platform Dialog doesn't support layout sizing before show() on all ROMs.
-        dialog.window?.setLayout((activity.resources.displayMetrics.widthPixels * .96).toInt(),
-            (activity.resources.displayMetrics.heightPixels * .88).toInt())
     }
 
     /**
@@ -361,6 +542,15 @@ object EnhancedEditorHooks {
                     state.dialog?.isShowing != true || generation != state.browseGeneration.get()) return@runOnUiThread
                 if (!listing.available) {
                     state.validation?.text = listing.message
+                    val targetInput = state.inputs?.getOrNull(if (directoryOnly) 2 else 0)
+                    if (targetInput != null) {
+                        AlertDialog.Builder(activity)
+                            .setTitle("Script browser unavailable")
+                            .setMessage(listing.message + "\nYou can still enter a path manually, " +
+                                "or use the original editor's suggestions.")
+                            .setPositiveButton("Enter path") { _, _ -> manualPath(state, directoryOnly, targetInput) }
+                            .setNegativeButton("Cancel", null).show()
+                    }
                     return@runOnUiThread
                 }
                 val names = ArrayList<String>()
@@ -393,6 +583,11 @@ object EnhancedEditorHooks {
                         } else if (selected?.kind == ScriptExplorer.Kind.REGULAR_FILE && !directoryOnly) {
                             state.inputs?.getOrNull(0)?.setText(selected.path)
                             state.validation?.text = "Executable path staged; Save is still required."
+                        }
+                    }
+                    .setNeutralButton("Enter path") { _, _ ->
+                        state.inputs?.getOrNull(if (directoryOnly) 2 else 0)?.let {
+                            manualPath(state, directoryOnly, it)
                         }
                     }
                     .setNegativeButton("Cancel", null).show()

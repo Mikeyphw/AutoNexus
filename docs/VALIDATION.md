@@ -173,3 +173,18 @@ once. Never attempt to reapply TT-E2 itself or rewrite the existing commit.
   Termux execution, callback acceptance, process cold start or after-reboot
   reliability. Collect independent real-device traces before TT-F1 behavior
   fixes. No SystemUI, new privilege, root execution or original APK changes.
+
+## TT-F1 modern editor and boot-readiness safety (new source candidate)
+
+- Preserve original source-bound TT-F0 evidence and existing TT-E1/E2 regression
+  and bootstrap security tests. `tools/test_termux_tasker_f1.py` adds adapter,
+  fixed-footer/nav, always-present path fallback, no-replay and provenance
+  contract tests; `BootReadinessPolicyTest.kt` covers locked, grace-period,
+  service-unknown and positive-signal states.
+- Update the existing v0.5.0 identity assertions to the current v0.6.0
+  implementation; do **not** delete those checks. CI still runs assembleDebug,
+  testDebugUnitTest, lintDebug, DEX inspection and exact-HEAD artifact upload.
+- A profile Wait is a *Tasker-side opt-in workaround*, not an automatic boot
+  readiness guarantee; no user action shall be silently replayed. Hosted build
+  green alone does not qualify original suggestion adapter behavior or
+  Android 16 LSPosed device acceptance. No existing CI gates removed.
