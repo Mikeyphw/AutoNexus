@@ -21,7 +21,7 @@ The AutoNexus Material 3 companion shows independent private, versioned **staged
 
 ## Build and hosted checks
 
-Current debug version: **0.4.0-tt-e1 (versionCode 4)**. Requirements: JDK 17, Android SDK 36 (`compileSdk` and `targetSdk` 36; `minSdk` 26), Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin/Compose compiler plugin 2.3.21, Compose BOM 2026.06.01 and activity-compose 1.13.0. The historical Xposed API `de.robv.android.xposed:api:82` is **compileOnly**, never shipped as framework implementation classes.
+Current debug version: **0.5.0-tt-e2 (versionCode 5)**. Requirements: JDK 17, Android SDK 36 (`compileSdk` and `targetSdk` 36; `minSdk` 26), Gradle 8.13, Android Gradle Plugin 8.13.2, Kotlin/Compose compiler plugin 2.3.21, Compose BOM 2026.06.01 and activity-compose 1.13.0. The historical Xposed API `de.robv.android.xposed:api:82` is **compileOnly**, never shipped as framework implementation classes.
 
 ```sh
 python3 tools/verify_bootstrap.py --repo .
@@ -34,6 +34,14 @@ The GitHub Actions `AutoNexus Android source gate` checks out the **exact PR HEA
 
 ## Native delivery and security
 
-All repository changes must use exact-pinned native **Mikeyphw/devtool Launcher v3.1+**: verify the intended named feature branch, origin, HEAD/tree, every modified preimage blob, launcher HEAD/tree/schema and payload; native validation, atomic commit, durable session, authorized push and PR/CI observation. Never replace native application with manual file copying, force-push, rebase, reset or discarded receipts. After `LAUNCHER_V3_COMMITTED`, resume the session rather than reapplying the package. See [Devtool delivery](docs/DEVTOOL_DELIVERY.md) and [validation](docs/VALIDATION.md).
+All repository changes must use the latest verified compatible native **Mikeyphw/devtool Launcher v3.1+** from current `main` (no Devtool commit pin): verify the named target feature branch, origin, immutable target HEAD/tree, every modified preimage blob, and the runtime launcher HEAD/tree/schema and payload identities dynamically; native validation, atomic commit, durable session, authorized push and PR/CI observation. Never replace native application with manual file copying, force-push, rebase, reset or discarded receipts. After `LAUNCHER_V3_COMMITTED`, resume the session rather than reapplying the package. See [Devtool delivery](docs/DEVTOOL_DELIVERY.md) and [validation](docs/VALIDATION.md).
 
 No new exported components, root operations, permission grants, SystemUI/system_server scopes, Tasker bundle keys or automatic command replays are introduced. Runtime command/notification modification gates remain off for all domains. Termux:Tasker TT-E1 is a separately scoped **UI-only** enhancement, not an IPC or shell behavior change. See [security](docs/SECURITY.md).
+
+## Termux:Tasker TT-E2 — argument, script and result studios
+
+This proposed milestone builds on the TT-E1 original-serializer bridge. It adds an explicitly revealed preview using the original attested v0.9.0 `ArgumentTokenizer` (not a shell parser), bounded read-only navigation of Termux's scripts folder **only if accessible to the plugin UID**, mode-specific field visibility without erasing values, and accurate Tasker result-variable/acknowledgment help. No browsing, parsing, script execution, clipboard operation, or permission change happens automatically.
+
+**Compatibility and evidence:** Source tests and local JVM stub compilation are distinct from hosted Android CI and real-device acceptance. The Termux:Tasker unresponsive-action IPC failure remains unmodified pending a redacted two-sided device trace. The original editor, original Locale bundle serializer, unknown-key guards and safe-off gates remain intact.
+
+TT-E2 native delivery hardening: discarded enhanced drafts never overwrite edits made in the Original editor; reopening Enhanced re-snapshots original fields. Script browsing is opt-in/read-only, capped to 256 scanned entries and 60 displayed, and rejects symlink traversal. Use the reviewed native Devtool delivery script (current main dynamically, no Devtool SHA lock).

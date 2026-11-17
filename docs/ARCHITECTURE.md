@@ -35,3 +35,9 @@ automated recovery channel is added. This does not enable the false
 ## Termux:Tasker TT-E1 configuration boundary
 
 The version/signer-gated main plugin process has a UI-only hook into its existing `EditConfigurationActivity`. Its dialog stages eight stock fields. Validate & Save copies the values into the original widgets and invokes the stock `finish()` to generate the original Locale bundle; Discard marks the original cancellation flag and returns `RESULT_CANCELED`. Original fallback discards only the enhanced draft. Back/Home while enhanced mode is active cannot call the original implicit Save. A versioned, bounded Activity saved-state bundle restores transient drafts during recreation; it is not added to Tasker configuration, cross-package preferences or root services. Unknown Tasker fields and unavailable numeric ABI refuse enhanced Save.
+
+## TT-E2 local editor explorers
+
+The plugin's existing signer/version attestation remains the only gate to the injected editor. The new pure `ArgumentStudio` accepts the output of the installed plugin's `ArgumentTokenizer` and performs no independent tokenization. `ScriptExplorer` uses NIO read-only bounded enumeration on a user-triggered worker; stale Activity requests are dropped using a generation counter. No FileProvider, exported component, service or IPC channel is added. Selecting a path only writes a staged field, and the original plugin must still validate and serialize it through `EditConfigurationActivity.finish()`.
+
+TT-E2 uses `EditorDraftBridge` to isolate enhanced/Original draft transitions, while the original app alone owns bundle serialization. The script browser has independent inspected-entry/display/depth bounds and symlink-component refusal.

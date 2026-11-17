@@ -65,7 +65,9 @@ class EditorBridgeTests(unittest.TestCase):
         self.assertIn('range == null',self.draft)
     def test_original_fallback_discards_only_draft(self):
         self.assertIn('Original editor (discard enhanced draft)',self.bridge)
-        self.assertIn('state.enhanced = false',self.bridge)
+        self.assertIn('state.mode.returnToOriginal(currentStock)',self.bridge)
+        self.assertIn('state.mode.reopenEnhanced(currentStock)',self.bridge)
+        self.assertIn('state.mode.needsDiscardConfirmation(pending, currentStock)',self.bridge)
         self.assertIn('Discard draft & open Original',self.bridge)
     def test_no_secret_logging_in_bridge(self):
         for banned in ('XposedBridge.log(', 'Log.d(', 'Log.i(', 'Log.e(',

@@ -13,7 +13,7 @@ No skipped check counts as a pass. Runtime command/notification changes and root
 
 CI checks out `${{ github.event.pull_request.head.sha || github.sha }}` directly, disables checkout credential persistence, and independently asserts `git rev-parse HEAD`. A signed-for-debug (NOT release-signed) `app-debug.apk`, `app-debug.apk.sha256` and `source-commit.txt` are uploaded to an Actions artifact labeled by the exact source HEAD, retained for 7 days. Artifact identity and integrity are only meaningful when the on-device APK hash matches the accompanying SHA file and the PR HEAD is independently verified. GitHub's older PR-merge checkout behavior is not accepted as exact-source evidence.
 
-The existing `config/delivery-required-ci.json` pins repository `Mikeyphw/AutoNexus`, base `main`, PR event and workflow `AutoNexus Android source gate` ID `419982126`. Devtool must use the latest exact v3.1+ runtime, validate/commit through its native overlay engine, create a durable delivery session, and observe the actual PR HEAD. Hosted green does not imply native required-CI qualification if branch/ruleset/registrar/evidence requirements cannot be proven.
+The existing `config/delivery-required-ci.json` pins repository `Mikeyphw/AutoNexus`, base `main`, PR event and workflow `AutoNexus Android source gate` ID `419982126`. Devtool must dynamically resolve and attest the latest compatible v3.1+ current-main runtime (never pin a historical Devtool SHA), validate/commit through its native overlay engine, create a durable delivery session, and observe the actual PR HEAD. Hosted green does not imply native required-CI qualification if branch/ruleset/registrar/evidence requirements cannot be proven.
 
 ## Physical Android / LSPosed acceptance (NOT performed by CI)
 
@@ -122,3 +122,12 @@ production signing remain separately unverified.
 - Hosted Android build and `:app:lintDebug` must compile the Android/Xposed editor bridge; local stub compilation, if performed, is not hosted qualification.
 - Physical acceptance: install the exact-HEAD debug APK, scope LSPosed only to `com.termux.tasker`, verify pinned F-Droid 0.9.0 signature; open an existing Tasker action and compare all eight saved fields. Verify no-op Save, Discard, Original fallback, Back/Home, rotation, large stdin, null/default values, incompatible signature and malformed values. Check original Tasker result bundle, not only dialog success.
 - Run only one harmless action on explicit user initiation. TT-F0 trace stages must identify the actual IPC failure before any behavioral retry/repair. No release signing or hardware acceptance claim from CI alone.
+
+## TT-E2 editor studio validation (proposed, not hosted yet)
+
+- Python `test_termux_tasker_e2.py` covers exact original tokenizer binding, opt-in preview, bounded canonical script browsing, safe read-only behavior, preserved raw fields, and no new execution or root paths.
+- JVM `ArgumentStudioTest` and `ScriptExplorerTest` cover token preview refusal, unchanged raw arguments, unresolved Tasker variables, symlink traversal, non-allowlisted directories, bounded enumeration and deep directory refusal.
+- Hosted build must still compile against Android SDK 36, AGP 8.13.2, Kotlin 2.3.21, and compile-only legacy Xposed API; all existing source, JVM, lint and APK checks remain mandatory.
+- Device acceptance: check the optional browser under the plugin UID; if inaccessible, verify fallback, not a guessed success. Save/Discard/Original plus activity recreation, mode toggles and `%variables` require physical confirmation. No IPC reliability or release claim is made.
+
+TT-E2 revised acceptance: test editor transition `EditorDraftBridgeTest` (discard/current Original/re-entry), test `ScriptExplorerTest` (bounded scanning, internal/escaped symlinks, depth, limits), run Python contracts and security gates. Wrapper source/package SHA verification is independently tested with altered bytes. Native Devtool `check`, hosted Android compile/test/lint, real LSPosed/Tasker and release remain separate qualifications; do not mark unperformed tests passed.

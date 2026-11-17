@@ -14,6 +14,8 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedHelpers
 import java.util.WeakHashMap
@@ -34,16 +36,18 @@ object EnhancedEditorHooks {
         "session_action", "background_custom_log_level",
     )
 
-    private class Session(val activity: Activity, val original: EditorDraft,
-                          var draft: EditorDraft, val unknownKeys: Boolean,
-                          val stdinWasNull: Boolean) {
-        var enhanced = true
+    private class Session(val activity: Activity, initialDraft: EditorDraft,
+                          val unknownKeys: Boolean, var stdinWasNull: Boolean) {
+        val mode = EditorDraftBridge(initialDraft)
+        val enhanced: Boolean get() = mode.enhanced
+        val draft: EditorDraft get() = mode.draft
         var finishApproved = false
         var dialog: Dialog? = null
         var inputs: Array<EditText>? = null
         var terminal: CheckBox? = null
         var waitForResult: CheckBox? = null
         var validation: TextView? = null
+        val browseGeneration = AtomicInteger(0)
         fun current(): EditorDraft {
             val v = inputs ?: return draft
             return EditorDraft(
@@ -52,8 +56,11 @@ object EnhancedEditorHooks {
                 terminal?.isChecked == true, waitForResult?.isChecked == true,
             )
         }
-        fun dismiss() { try { dialog?.dismiss() } catch (_: Throwable) { }
-            dialog = null; inputs = null }
+        fun dismiss() {
+            browseGeneration.incrementAndGet()
+            try { dialog?.dismiss() } catch (_: Throwable) { }
+            dialog = null; inputs = null
+        }
     }
 
     /** Installed only in the exact com.termux.tasker main process. */
@@ -131,6 +138,10 @@ object EnhancedEditorHooks {
         )
     }
 
+    private fun stockStdinWasNull(activity: Activity): Boolean = try {
+        XposedHelpers.getObjectField(activity, "mStdin") == null
+    } catch (_: Throwable) { false }
+
     private fun attach(activity: Activity, saved: Bundle?) {
         val original = stockDraft(activity) ?: return
         // When the original activity recreated, its onCreate(saved != null)
@@ -146,7 +157,7 @@ object EnhancedEditorHooks {
         } catch (_: Throwable) { false } else try {
             XposedHelpers.getObjectField(activity, "mStdin") == null
         } catch (_: Throwable) { false }
-        val state = Session(activity, original, active, unknown, stdinWasNull)
+        val state = Session(activity, active, unknown, stdinWasNull)
         synchronized(sessions) { sessions[activity] = state }
         if (restored != null) {
             // Restoration must only happen for the exact injected schema.
@@ -167,7 +178,14 @@ object EnhancedEditorHooks {
         val entry = Button(activity).apply {
             text = "AutoNexus · Enhanced editor"
             contentDescription = "Open enhanced Termux Tasker configuration editor"
-            setOnClickListener { state.enhanced = true; show(state) }
+            setOnClickListener {
+                // Stock fields may have been edited while Original was visible.
+                // Never resurrect an earlier enhanced draft over those changes.
+                val currentStock = stockDraft(activity) ?: return@setOnClickListener
+                state.stdinWasNull = stockStdinWasNull(activity)
+                state.mode.reopenEnhanced(currentStock)
+                show(state)
+            }
         }
         root.addView(entry, 0, ViewGroup.LayoutParams(-1, -2))
         entry.post { if (!activity.isFinishing && !activity.isDestroyed) show(state) }
@@ -235,18 +253,58 @@ object EnhancedEditorHooks {
             field(activity, "stdin · not logged", draft.stdin, true),
         )
         pairs.forEach { root.addView(it.first) }
+        root.addView(Button(activity).apply {
+            text = "Browse Termux scripts (read-only, if accessible)"
+            setOnClickListener { browseScripts(state, File(ScriptExplorer.TERMUX_SCRIPTS), false) }
+        })
+        root.addView(Button(activity).apply {
+            text = "Choose a working directory (if accessible)"
+            setOnClickListener { browseScripts(state, File(ScriptExplorer.TERMUX_SCRIPTS), true) }
+        })
+        val tokenFeedback = TextView(activity).apply {
+            text = "Argument token preview hidden. Uses the original plugin parser, with no script execution."
+            textSize = 12f
+        }
+        root.addView(Button(activity).apply {
+            text = "Preview arguments with original tokenizer"
+            setOnClickListener {
+                // Only display parsed values after an explicit tap. Nothing enters logs or storage.
+                val preview = ArgumentStudio.inspect(pairs[1].second.text.toString()) { text ->
+                    val parser = Class.forName("com.termux.tasker.ArgumentTokenizer", false, activity.classLoader)
+                    @Suppress("UNCHECKED_CAST")
+                    (XposedHelpers.callStaticMethod(parser, "tokenize", text) as? List<*>)
+                        ?.map { it as? String ?: error("Unexpected tokenizer output") }
+                }
+                tokenFeedback.text = preview.display()
+            }
+        })
+        root.addView(tokenFeedback)
         header("Execution", "Switching mode never discards mode-specific fields.")
         val terminal = CheckBox(activity).apply { text = "Execute in terminal session"; isChecked = draft.inTerminal }
         root.addView(terminal)
         val action = field(activity, "Terminal session action · raw value", draft.sessionAction)
         val level = field(activity, "Background log level · raw value", draft.logLevel)
         root.addView(action.first); root.addView(level.first)
+        fun updateModeVisibility() {
+            action.first.visibility = if (terminal.isChecked) View.VISIBLE else View.GONE
+            level.first.visibility = if (terminal.isChecked) View.GONE else View.VISIBLE
+        }
+        terminal.setOnClickListener { updateModeVisibility() }
+        updateModeVisibility()
+        root.addView(TextView(activity).apply {
+            text = "Hidden mode-specific values remain staged and will not be cleared. " +
+                   "The stock app decides whether Android allows background activity starts."
+            textSize = 12f
+        })
         header("Results", "Tasker controls the host timeout. Waiting never means the command is safe to retry.")
         val wait = CheckBox(activity).apply { text = "Wait for result"; isChecked = draft.waitForResult }
         root.addView(wait)
         root.addView(TextView(activity).apply {
-            text = "Background: %stdout, %stderr, %result, %err, %errmsg. " +
-                   "Terminal: combined transcript; no independent stderr."
+            text = "Background: %stdout, %stdout_original_length, %stderr, " +
+                   "%stderr_original_length, %result, %err, %errmsg. " +
+                   "Terminal: combined transcript; no independent stderr. " +
+                   "Pending acknowledgment, dispatch attempt and Tasker completion are separate. " +
+                   "No plugin-side timeout override or automatic command replay."
             textSize = 12f
         })
         header("Diagnostics", "LSPosed TT_TRACE reports local stages only, not Tasker host acceptance.")
@@ -286,6 +344,62 @@ object EnhancedEditorHooks {
             (activity.resources.displayMetrics.heightPixels * .88).toInt())
     }
 
+    /**
+     * Explicit opt-in read-only explorer, restricted to the original Termux
+     * scripts tree. Missing Android UID permissions are shown, never bypassed.
+     * Results are returned only while this editor is still alive and active.
+     */
+    private fun browseScripts(state: Session, folder: File, directoryOnly: Boolean) {
+        val activity = state.activity
+        if (!state.enhanced || state.dialog?.isShowing != true) return
+        val generation = state.browseGeneration.incrementAndGet()
+        state.validation?.text = "Inspecting scripts with existing app permissions; no root or execution."
+        Thread {
+            val listing = ScriptExplorer.browse(File(ScriptExplorer.TERMUX_SCRIPTS), folder)
+            activity.runOnUiThread {
+                if (activity.isFinishing || activity.isDestroyed || !state.enhanced ||
+                    state.dialog?.isShowing != true || generation != state.browseGeneration.get()) return@runOnUiThread
+                if (!listing.available) {
+                    state.validation?.text = listing.message
+                    return@runOnUiThread
+                }
+                val names = ArrayList<String>()
+                val choices = ArrayList<ScriptExplorer.Entry?>()
+                val root = File(ScriptExplorer.TERMUX_SCRIPTS).canonicalFile
+                val current = folder.canonicalFile
+                if (current != root) {
+                    names.add("↑ Parent directory")
+                    choices.add(ScriptExplorer.Entry("..", current.parentFile.absolutePath,
+                        ScriptExplorer.Kind.DIRECTORY))
+                }
+                if (directoryOnly) {
+                    names.add("Use this directory as working directory (staged)")
+                    choices.add(null)
+                }
+                listing.entries.forEach { item ->
+                    names.add(if (item.kind == ScriptExplorer.Kind.DIRECTORY)
+                        "📁 ${item.label}" else "📄 ${item.label}")
+                    choices.add(item)
+                }
+                val title = if (listing.truncated) "Browse scripts · first 60 entries" else "Browse scripts · read-only"
+                AlertDialog.Builder(activity).setTitle(title)
+                    .setItems(names.toTypedArray()) { _, index ->
+                        val selected = choices[index]
+                        if (selected == null && directoryOnly) {
+                            state.inputs?.getOrNull(2)?.setText(current.absolutePath)
+                            state.validation?.text = "Working directory staged; Save is still required."
+                        } else if (selected?.kind == ScriptExplorer.Kind.DIRECTORY) {
+                            browseScripts(state, File(selected.path), directoryOnly)
+                        } else if (selected?.kind == ScriptExplorer.Kind.REGULAR_FILE && !directoryOnly) {
+                            state.inputs?.getOrNull(0)?.setText(selected.path)
+                            state.validation?.text = "Executable path staged; Save is still required."
+                        }
+                    }
+                    .setNegativeButton("Cancel", null).show()
+            }
+        }.apply { isDaemon = true; start() }
+    }
+
     private fun ranges(state: Session): Pair<IntRange?, IntRange?> {
         val loader = state.activity.classLoader
         return try {
@@ -315,7 +429,7 @@ object EnhancedEditorHooks {
 
     private fun save(state: Session) {
         val draft = state.current()
-        state.draft = draft
+        state.mode.stage(draft)
         val (session, log) = ranges(state)
         val errors = draft.validationProblems(session, log)
         if (state.unknownKeys) {
@@ -344,17 +458,25 @@ object EnhancedEditorHooks {
     }
 
     private fun originalEditor(state: Session) {
-        state.draft = state.current()
-        if (state.draft != state.original) {
+        val currentStock = stockDraft(state.activity) ?: run {
+            state.validation?.text = "Cannot snapshot Original safely. No fields changed."
+            return
+        }
+        val pending = state.current()
+        fun openOriginal() {
+            // Discard staged-only values and keep the current stock widgets untouched.
+            state.mode.returnToOriginal(currentStock)
+            state.stdinWasNull = stockStdinWasNull(state.activity)
+            state.dismiss()
+        }
+        if (state.mode.needsDiscardConfirmation(pending, currentStock)) {
             AlertDialog.Builder(state.activity)
                 .setTitle("Discard enhanced draft?")
-                .setMessage("The original editor will retain its existing fields. Enhanced draft edits will not be saved.")
+                .setMessage("Original keeps its current fields. Uncommitted enhanced edits are discarded.")
                 .setNegativeButton("Keep editing", null)
-                .setPositiveButton("Discard draft & open Original") { _, _ ->
-                    state.enhanced = false
-                    state.dismiss()
-                }.show()
-        } else { state.enhanced = false; state.dismiss() }
+                .setPositiveButton("Discard draft & open Original") { _, _ -> openOriginal() }
+                .show()
+        } else openOriginal()
     }
 
     private fun discard(state: Session) {

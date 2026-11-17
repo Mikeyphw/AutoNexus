@@ -13,3 +13,9 @@ This table distinguishes **source implemented** from **hosted, physical and rele
 | Hosted CI | Exact source SHA checkout, static/JVM/Android lint/DEX gates and temporary debug artifact | New HEAD hosted checks, physical device acceptance and production signing |
 
 **Tasker IPC reliability status:** no modifying IPC fix is implemented. The reported “plugin did not respond” symptom does not by itself prove the command never executed. Automatic command replay stays prohibited. No Termux:Tasker feature requires SystemUI, a root daemon or altered Tasker/Termux APKs.
+
+### TT-E2 implementation note
+
+The Termux:Tasker enhanced editor gains an opt-in exact original tokenizer preview, bounded read-only script/directory navigator with UID-based fail-closed fallback, and mode/result guidance. This does **not** constitute the completed IPC reliability repair or full roadmap acceptance; see `docs/TERMUX_TASKER_IMPLEMENTATION.md`.
+
+TT-E2 regression hardening: current-original-field reentry, throwaway enhanced-only drafts, bounded inspected directory entries and denial of symlink traversal. No new execution or IPC behavior.

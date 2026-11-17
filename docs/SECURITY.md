@@ -28,3 +28,11 @@ by the Tasker host. See `docs/TERMUX_TASKER_IMPLEMENTATION.md`.
 - All inputs remain in-process, with bounded versioned Activity saved-state restoration; none enter read-only `TT_TRACE` logs.
 - Back/Home cannot invoke the implicit stock Save while the enhanced editor is active. Discard marks the legacy cancellation flag. Original fallback preserves untouched native controls. Unknown serialized keys and unavailable numeric constants refuse enhanced Save.
 - No root, SystemUI, automatic command replay, or Tasker host IPC rewriting is introduced.
+
+## TT-E2 read-only editor affordances
+
+- The argument preview uses the exact original v0.9.0 `ArgumentTokenizer` in the attested process, only after the operator taps Preview; the token strings remain solely on that screen. A failure to load or parse is not treated as successful validation and never affects Tasker save semantics. No clipboard or log export.
+- The opt-in local script explorer enumerates at most 60 entries and five folder levels under the canonical Termux scripts directory; it rejects symlinks and escapes, performs no reads of file bodies and never requests root or Android permissions. It must report inaccessible paths rather than bypassing the plugin UID.
+- Neither preview nor browsing transmits, executes, rewrites or automatically saves a Tasker action. All runtime `RUN_COMMAND` permissions, original serialization and fail-closed compatibility gates remain authoritative.
+
+TT-E2 hardening: script navigation bounds total inspection to 256 entries, including rejected/symlink entries; it also refuses symlinked path components even when their destination stays inside the approved root. Enhanced-to-Original discards only its transient draft and does not write stock fields. Reopening reads latest stock fields to avoid stale draft overwrite. The handoff wrapper independently verifies package SHA-256 plus all changed-file hashes and preimages before calling native Devtool.

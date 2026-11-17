@@ -6,4 +6,4 @@
 - Android 12+ dynamic system theme when supported, static Material3 light/dark fallback on older devices.
 - Legacy Xposed API `82` remains compileOnly. LSPosed/Vector loading on a real Android 16 device has **not** been proven; no modern libxposed double-entry fallback is automatically enabled.
 - Only four ordinary app package scopes; no SystemUI/`system_server`, no native root executor. Installed APK reference versions are expectations from earlier supplied static analysis, not observed facts about the device.
-- Preflight version `0.4.0-tt-e1` (versionCode 4) is for debug device acceptance, not a signed production release. A debug APK artifact is not evidence of working LSPosed scope loading.
+- Preflight version `0.5.0-tt-e2` (versionCode 5) is for debug device acceptance, not a signed production release. A debug APK artifact is not evidence of working LSPosed scope loading.

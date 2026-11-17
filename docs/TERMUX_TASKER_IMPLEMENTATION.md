@@ -1,4 +1,4 @@
-# Termux:Tasker current implementation — TT-F0 + TT-E1
+# Termux:Tasker current implementation — TT-F0 + TT-E1 + TT-E2
 
 ## Verified source and compatibility boundary
 
@@ -19,7 +19,16 @@ Draft editing is local only. **Validate & Save** checks nonempty executable, con
 
 The injected Activity captures transient draft state using a versioned, bounded Android `onSaveInstanceState` Bundle, with no cross-package preference or file storage. The bridge fails closed if the stock field IDs or original methods are unavailable. Unknown action keys and unavailable numeric bounds prevent enhanced Save, with a visible Original fallback. Original Tasker/Termux permissions and script path policies are never bypassed.
 
-**NO FULL EDITOR CLAIM:** This is a functioning source-level editor bridge covering all eight original fields; it is *not* yet the complete roadmap's file browser, exact original argument-token preview, dynamic icon/theme system, safe preview/test studio, or visually redesigned multiple-screen configuration. Those require further compatibility and device acceptance.
+**NO FULL EDITOR CLAIM:** TT-E1 provided a source-level bridge for the eight original fields, before TT-E2's opt-in read-only browser and original-tokenizer preview. Even with TT-E2, there is no complete file manager, dynamic icon/theme system, runnable safe-test studio or visually redesigned multiple-screen configuration. All new TT-E2 behavior remains pending hosted and device acceptance.
+
+## TT-E2 implemented: optional Argument, Script and Result Studio
+
+- An **explicit Preview arguments** action calls the installed, pinned `com.termux.tasker.ArgumentTokenizer.tokenize(String)` via classloader reflection. Nothing is parsed or normalized by AutoNexus. The preview shows at most 64 tokens and 8,192 input characters; oversized/malformed content or unavailable original parsing fails closed. Preview data stays in the foreground editor UI, appears only after a tap, is never logged/exported, and does not alter the raw arguments. `%variables` remain unresolved and are identified as such.
+- **Browse Termux scripts** and **Choose working directory** explicitly enumerate only the standard `~/.termux/tasker` path using the original process's existing filesystem rights. Bounded listing (60 entries, five levels), symlink exclusion, canonical parent containment and asynchronous UI updates prevent privilege escalation and directory traversal. Selection stages a text value; the operator must still press Save. If the plugin cannot read Termux private files, the browser reports the limitation, does not attempt root, and preserves manual/Original entry. No files are opened or executed.
+- The two mode-specific numeric controls are hidden/shown as whole field groups without clearing their staged data. Result help distinguishes `%stdout`, `%stdout_original_length`, `%stderr`, `%stderr_original_length`, `%result`, `%err`, `%errmsg`, and pending vs observed callback boundaries.
+- The original stock `finish()` remains the **only serialization** mechanism. No extra keys are added to Tasker bundles, no pending intent or service dispatch is modified, no script is retried.
+
+**NO FULL EDITOR CLAIM:** TT-E2 adds capability without the complete roadmap's semantic test studio, safe external path chooser, sampled result inspector, script favorites or root-assisted diagnostics. A script browser in the plugin UID cannot promise access to Termux-private folders.
 
 ## TT-F0 read-only IPC trace preserved
 
@@ -38,3 +47,7 @@ Receiver entry/exit (`:background`), dispatch helper return, result-service/retu
 5. To investigate original "plugin did not respond" symptoms, use one explicitly requested harmless Tasker run **once**. Collect redacted TT_TRACE events, their process/stage/elapsed time, the Tasker host error time and user-unlock state. Missing callbacks are not proof the command never executed.
 
 Physical acceptance is separate from hosted build success, native Devtool receipt, and production release qualification. No specific IPC repair may be enabled until the missing stage has been verified on the device.
+
+### TT-E2 editor transition and browse hardening
+
+Selecting Original abandons staged enhanced-only values and keeps the current stock widgets unchanged. Reopening Enhanced first re-reads current stock fields (including stdin, terminal/result toggles and hidden-mode values) rather than recovering its previous enhanced draft. Original-vs-enhanced discard decisions compare against current stock fields. The editor-state bridge has JVM regression tests for stale-draft and reopened-stock behavior. Read-only script scanning examines at most 256 directory entries total, including skipped symlinks, displays at most 60, caps depth at 5, and refuses symlinked intermediate directories. Native command execution, IPC completion and Tasker result bundle serialization are unchanged.
