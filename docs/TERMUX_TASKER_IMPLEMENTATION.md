@@ -51,3 +51,47 @@ Physical acceptance is separate from hosted build success, native Devtool receip
 ### TT-E2 editor transition and browse hardening
 
 Selecting Original abandons staged enhanced-only values and keeps the current stock widgets unchanged. Reopening Enhanced first re-reads current stock fields (including stdin, terminal/result toggles and hidden-mode values) rather than recovering its previous enhanced draft. Original-vs-enhanced discard decisions compare against current stock fields. The editor-state bridge has JVM regression tests for stale-draft and reopened-stock behavior. Read-only script scanning examines at most 256 directory entries total, including skipped symlinks, displays at most 60, caps depth at 5, and refuses symlinked intermediate directories. Native command execution, IPC completion and Tasker result bundle serialization are unchanged.
+
+## TT-F0 opt-in LSPosed evidence review (source prepared; device acceptance pending)
+
+The existing pinned `com.termux.tasker` hooks record process-local, redacted
+`AutoNexus TT_TRACE` phase events. They do **not** intercept a Tasker host
+broadcast before the plugin process starts. Version/certificate gating and the
+original command/Locale protocol are unchanged.
+
+The AutoNexus companion's **Termux:Tasker** screen offers an explicitly initiated
+Android document picker to open an already-exported LSPosed text log. It reads a
+maximum of 512 KiB, inspects at most 12,000 lines / 1,024 characters per line,
+and accepts at most 320 exactly formatted `schema=1` process-local trace events.
+No background log access, clipboard access, unrestricted filesystem reads, root
+execution or new storage permissions are involved. Unknown or oversized content
+is rejected; clipping is reported as incomplete evidence, not as proof of
+non-delivery. Raw log lines are never saved in application preferences or copied
+to another file. The operator can explicitly use the Android document picker to
+save **only** sanitized enum counts and fixed diagnostic wording.
+
+Recommended physical evidence sequence:
+
+1. Record **installed** Tasker, Termux, Termux:Tasker, ROM/API, root provider,
+   LSPosed version/scope, signer identity and first-unlock state. Compare the
+   original 0.9.0 plugin identity against the pinned certificate. Do not replace
+   the original application or grant permissions automatically.
+2. Trigger a single already-configured harmless Tasker action with explicit
+   operator approval. Do not repeat a command if it might have executed.
+3. Export the LSPosed log through the manager, open it in the companion's
+   Termux:Tasker tab, and inspect the bounded phase summary. Export the redacted
+   enum-only report only if needed. Keep the original private log under user
+   control; redact it before sharing.
+4. Collect independent Tasker host error/dispatch evidence and Termux service
+   receipt if possible, along with timestamps and boot state. A plugin-only
+   `RECEIVER_ENTER` proves invocation, but a missing one does not prove host
+   non-delivery. `CALLBACK_RETURN` does not prove Tasker accepted completion.
+5. Correlate the independent sources manually. **Process-local sequence values
+   must not be treated as cross-process execution IDs.** Report genuine
+   unknown stages rather than guessing. Only then consider narrow, safe TT-F1
+   IPC behavior changes.
+
+**NO IPC FIX CLAIM. NO FULL EDITOR CLAIM. NO PHYSICAL DEVICE TRACE CLAIM.**
+This overlay supplies an evidence-review interface and JVM/security regressions,
+not a claimed hardware diagnosis or executed script. TT-F1's full UI and any
+optional host/Termux adapter remain separately gated by evidence and tests.

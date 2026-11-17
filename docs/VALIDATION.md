@@ -148,3 +148,28 @@ CI qualification. A previous green test on a host JDK is not an Android build pa
 The original TT-E2 overlay has already committed; use its existing durable
 Devtool session for its status, and the new source-bound correction package only
 once. Never attempt to reapply TT-E2 itself or rewrite the existing commit.
+
+
+## TT-F0 evidence completion — consented trace import and classification
+
+- Live TT-E2 CI repair passed exact PR HEAD verification, Android compile,
+  `:app:testDebugUnitTest`, `:app:lintDebug`, DEX/APK checks and artifact upload
+  in GitHub Actions run `44001169073` at `3497da48da0727f2e6fd8e9deaf858e16e22d9a9`.
+  This is **prior** hosted evidence, not a pass for this uncommitted overlay.
+- New pure Kotlin `TraceEvidenceTest.kt` verifies eight negative and positive
+  cases: absent-event ambiguity, receiver-without-dispatch ambiguity, local
+  callback not proving host acceptance, log injection rejection, overlong lines,
+  byte-clipping, bounded scanned lines, bounded accepted records. No script or
+  plugin result is replayed. `tools/test_termux_tasker_evidence.py` checks the
+  consented Android document picker, source privacy boundaries, old read-only
+  pinned identity gate, and absence of any new root/Tasker execution path.
+- The existing Python bootstrap/security/editor/CI gates remain unchanged and
+  are discovered by the same `test_*.py` pattern. No meaningful checks removed.
+- Native Devtool v3.1+ overlay validation and postapply hosted build/lint/DEX
+  remain mandatory. The dynamically verified latest compatible `main` runtime
+  is recorded by the native launcher; never hardcode Devtool SHA. Native
+  plain-terminal selectors and no automatic clipboard copying are required.
+- A hosted green build would **not** qualify Tasker host-side dispatch, actual
+  Termux execution, callback acceptance, process cold start or after-reboot
+  reliability. Collect independent real-device traces before TT-F1 behavior
+  fixes. No SystemUI, new privilege, root execution or original APK changes.

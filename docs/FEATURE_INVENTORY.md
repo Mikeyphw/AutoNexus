@@ -19,3 +19,16 @@ This table distinguishes **source implemented** from **hosted, physical and rele
 The Termux:Tasker enhanced editor gains an opt-in exact original tokenizer preview, bounded read-only script/directory navigator with UID-based fail-closed fallback, and mode/result guidance. This does **not** constitute the completed IPC reliability repair or full roadmap acceptance; see `docs/TERMUX_TASKER_IMPLEMENTATION.md`.
 
 TT-E2 regression hardening: current-original-field reentry, throwaway enhanced-only drafts, bounded inspected directory entries and denial of symlink traversal. No new execution or IPC behavior.
+
+
+### Termux:Tasker TT-F0 evidence import (prepared, awaiting CI/device acceptance)
+
+- Operator-selected, read-only import of an existing LSPosed `TT_TRACE` log
+  using Android's document picker; bounded to 512 KiB / 12,000 lines / 320
+  accepted process-local enum events.
+- Redacted phase/outcome counts and evidence-incomplete notices; an explicit
+  sanitized report export through the Android document picker, without raw log
+  content or new permissions. Missing trace events are not interpreted as proof
+  that Tasker failed to dispatch or that a command was not executed.
+- No IPC behavior repair, Tasker host hook, script replay, root command, Termux
+  original APK modification, SystemUI scope, or acceptance claim.
